@@ -1,0 +1,13 @@
+Image-heavy PDF:
+Downscale images to 150 DPI
+Convert images to JPEG
+Apply aggressive compression
+
+Text-heavy PDF:
+Remove unused fonts
+Optimize object streams
+Enable deflate compression
+
+Scanned PDF:
+Apply OCR
+Compress extracted images aggressively

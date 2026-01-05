@@ -1,0 +1,8 @@
+pymupdf
+pillow
+sentence-transformers
+faiss-cpu
+scikit-learn
+pytesseract
+pdf2image
+streamlit
