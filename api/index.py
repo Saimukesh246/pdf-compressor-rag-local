@@ -17,18 +17,19 @@ from analyzer.pdf_analyzer import analyze_pdf
 from decision.hybrid_decider import decide_strategy
 from rag.indexer import build_index
 from rag.pdf_rag import query_pdf_content
-from rag.llm_synthesizer import synthesize_rag_answer
+from rag.llm_synthesizer import synthesize_rag_answer, generate_pdf_mindmap
 from compressor.pdf_optimizer import (
     find_ghostscript,
     compress_pdf,
     safe_optimize_pdf,
     render_page_preview
 )
+from compressor.pdf_manipulator import merge_pdfs, split_pdf
 
 app = FastAPI(
     title="PDF Compressor & RAG Assistant API",
-    description="Vercel Serverless API for PDF Compression and RAG Semantic Search",
-    version="1.1.0"
+    description="Vercel Serverless API for PDF Compression, Manipulation, and RAG Q&A",
+    version="1.2.0"
 )
 
 KB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "knowledge_base.txt")
@@ -66,7 +67,8 @@ async def compress_pdf_endpoint(
     file: UploadFile = File(...),
     level: str = Form("medium"),
     password: Optional[str] = Form(None),
-    strip_metadata: bool = Form(False)
+    strip_metadata: bool = Form(False),
+    grayscale: bool = Form(False)
 ):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
@@ -89,7 +91,7 @@ async def compress_pdf_endpoint(
 
         gs_path = find_ghostscript()
         if gs_path:
-            stats = compress_pdf(input_path, output_path, level=level, password=password, strip_metadata=strip_metadata)
+            stats = compress_pdf(input_path, output_path, level=level, password=password, strip_metadata=strip_metadata, grayscale=grayscale)
         else:
             safe_optimize_pdf(input_path, output_path, password=password, strip_metadata=strip_metadata)
             orig_kb = len(contents) / 1024.0
@@ -162,6 +164,78 @@ async def ask_pdf_endpoint(
             "synthesized_answer": synthesized_answer,
             "results": results
         }
+
+@app.post("/api/mindmap")
+async def mindmap_endpoint(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "target.pdf")
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        res = generate_pdf_mindmap(input_path)
+        return {
+            "filename": file.filename,
+            "summary_text": res["summary_text"],
+            "mermaid_code": res["mermaid_code"]
+        }
+
+@app.post("/api/merge")
+async def merge_pdfs_endpoint(files: list[UploadFile] = File(...)):
+    if len(files) < 2:
+        raise HTTPException(status_code=400, detail="At least two PDF files are required for merging.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_paths = []
+        for idx, file in enumerate(files):
+            in_path = os.path.join(tmpdir, f"in_{idx}.pdf")
+            contents = await file.read()
+            with open(in_path, "wb") as f:
+                f.write(contents)
+            input_paths.append(in_path)
+
+        out_path = os.path.join(tmpdir, "merged.pdf")
+        res = merge_pdfs(input_paths, out_path)
+
+        with open(out_path, "rb") as f:
+            merged_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": "merged.pdf",
+            "total_pages": res["total_pages"],
+            "file_size_kb": res["file_size_kb"],
+            "merged_file_b64": base64.b64encode(merged_bytes).decode("utf-8")
+        })
+
+@app.post("/api/split")
+async def split_pdf_endpoint(
+    file: UploadFile = File(...),
+    range_str: str = Form("1-1")
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        res = split_pdf(input_path, tmpdir, range_str=range_str)
+        output_path = res["output_path"]
+
+        with open(output_path, "rb") as f:
+            split_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": f"split_{file.filename}",
+            "extracted_pages": res["extracted_pages"],
+            "file_size_kb": res["file_size_kb"],
+            "split_file_b64": base64.b64encode(split_bytes).decode("utf-8")
+        })
 
 public_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
 if os.path.exists(public_dir):

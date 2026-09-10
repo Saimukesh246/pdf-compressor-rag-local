@@ -50,12 +50,6 @@ def find_ghostscript():
 def safe_optimize_pdf(input_pdf, output_pdf, password=None, strip_metadata=False):
     """
     Performs initial safe PDF cleanup, decryption, and structure optimization using PyMuPDF.
-    
-    Args:
-        input_pdf (str): Source PDF path
-        output_pdf (str): Destination PDF path
-        password (str, optional): Password for encrypted PDF
-        strip_metadata (bool): If True, purges PDF author, title, creation date, and annotations.
     """
     doc = fitz.open(input_pdf)
     if doc.is_encrypted:
@@ -82,9 +76,9 @@ def safe_optimize_pdf(input_pdf, output_pdf, password=None, strip_metadata=False
     doc.close()
 
 
-def compress_with_ghostscript(input_pdf, output_pdf, level="medium"):
+def compress_with_ghostscript(input_pdf, output_pdf, level="medium", grayscale=False):
     """
-    Compresses a PDF file using Ghostscript.
+    Compresses a PDF file using Ghostscript with optional Grayscale / Monochrome color conversion.
     """
     gs_path = find_ghostscript()
     if not gs_path:
@@ -99,10 +93,19 @@ def compress_with_ghostscript(input_pdf, output_pdf, level="medium"):
         f"-dPDFSETTINGS=/{gs_setting}",
         "-dNOPAUSE",
         "-dQUIET",
-        "-dBATCH",
+        "-dBATCH"
+    ]
+
+    if grayscale:
+        cmd.extend([
+            "-sColorConversionStrategy=Gray",
+            "-dProcessColorModel=/DeviceGray"
+        ])
+
+    cmd.extend([
         f"-sOutputFile={output_pdf}",
         input_pdf
-    ]
+    ])
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -149,9 +152,9 @@ def calculate_quality_metrics(orig_img, comp_img):
     }
 
 
-def compress_pdf(input_pdf, output_pdf, level="medium", password=None, strip_metadata=False):
+def compress_pdf(input_pdf, output_pdf, level="medium", password=None, strip_metadata=False, grayscale=False):
     """
-    Executes the full compression pipeline with password decryption and metadata stripping options.
+    Executes the full compression pipeline with password decryption, metadata stripping, and grayscale conversion.
     """
     if not os.path.exists(input_pdf):
         raise FileNotFoundError(f"Input file not found: {input_pdf}")
@@ -161,7 +164,7 @@ def compress_pdf(input_pdf, output_pdf, level="medium", password=None, strip_met
 
     try:
         safe_optimize_pdf(input_pdf, intermediate_pdf, password=password, strip_metadata=strip_metadata)
-        compress_with_ghostscript(intermediate_pdf, output_pdf, level=level)
+        compress_with_ghostscript(intermediate_pdf, output_pdf, level=level, grayscale=grayscale)
     finally:
         if os.path.exists(intermediate_pdf):
             try:

@@ -22,7 +22,7 @@ async function checkHealth() {
 }
 
 function switchTab(tabName) {
-  const tabs = ['compress', 'batch', 'ask', 'about'];
+  const tabs = ['compress', 'batch', 'ask', 'manip', 'about'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const sec = document.getElementById(`sec${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -67,6 +67,7 @@ function setupFileInputs() {
 
   const askInput = document.getElementById('fileAsk');
   const btnAsk = document.getElementById('btnAsk');
+  const btnMindmap = document.getElementById('btnMindmap');
   const fileNameAsk = document.getElementById('fileNameAsk');
 
   if (askInput) {
@@ -74,6 +75,33 @@ function setupFileInputs() {
       if (e.target.files.length > 0) {
         fileNameAsk.innerText = `📄 ${e.target.files[0].name}`;
         btnAsk.disabled = false;
+        if (btnMindmap) btnMindmap.disabled = false;
+      }
+    });
+  }
+
+  const mergeInput = document.getElementById('fileMerge');
+  const btnMerge = document.getElementById('btnMerge');
+  const fileNameMerge = document.getElementById('fileNameMerge');
+
+  if (mergeInput) {
+    mergeInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        fileNameMerge.innerText = `🔗 ${e.target.files.length} PDFs selected`;
+        btnMerge.disabled = false;
+      }
+    });
+  }
+
+  const splitInput = document.getElementById('fileSplit');
+  const btnSplit = document.getElementById('btnSplit');
+  const fileNameSplit = document.getElementById('fileNameSplit');
+
+  if (splitInput) {
+    splitInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        fileNameSplit.innerText = `✂️ ${e.target.files[0].name}`;
+        btnSplit.disabled = false;
       }
     });
   }
@@ -84,6 +112,7 @@ async function runSingleCompression() {
   const levelSelect = document.getElementById('levelSelect');
   const inputPassword = document.getElementById('inputPassword');
   const chkStripMeta = document.getElementById('chkStripMeta');
+  const chkGrayscale = document.getElementById('chkGrayscale');
   const btnCompress = document.getElementById('btnCompress');
 
   if (!fileInput.files || fileInput.files.length === 0) return;
@@ -92,6 +121,7 @@ async function runSingleCompression() {
   const level = levelSelect.value;
   const password = inputPassword ? inputPassword.value : '';
   const stripMeta = chkStripMeta ? chkStripMeta.checked : false;
+  const grayscale = chkGrayscale ? chkGrayscale.checked : false;
 
   btnCompress.disabled = true;
   btnCompress.innerText = '⏳ Compressing PDF...';
@@ -101,6 +131,7 @@ async function runSingleCompression() {
   formData.append('level', level);
   if (password) formData.append('password', password);
   formData.append('strip_metadata', stripMeta);
+  formData.append('grayscale', grayscale);
 
   try {
     const response = await fetch('/api/compress', {
@@ -225,7 +256,7 @@ async function runAskQuery() {
   }
 
   btnAsk.disabled = true;
-  btnAsk.innerText = '⏳ Searching & Synthesizing...';
+  btnAsk.innerText = '⏳ Searching...';
 
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
@@ -274,6 +305,128 @@ async function runAskQuery() {
     alert(`RAG Query Error: ${err.message}`);
   } finally {
     btnAsk.disabled = false;
-    btnAsk.innerText = '🔍 Search & Synthesize Answer';
+    btnAsk.innerText = '🔍 Search Q&A';
+  }
+}
+
+async function runMindmapGen() {
+  const fileInput = document.getElementById('fileAsk');
+  const btnMindmap = document.getElementById('btnMindmap');
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Please select a PDF file first.');
+    return;
+  }
+
+  btnMindmap.disabled = true;
+  btnMindmap.innerText = '⏳ Generating...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const response = await fetch('/api/mindmap', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Mindmap generation failed');
+    }
+
+    const data = await response.json();
+
+    document.getElementById('askSynthesizedAnswer').innerText = data.summary_text;
+    document.getElementById('mermaidCodeText').innerText = data.mermaid_code;
+    document.getElementById('mindmapBox').classList.remove('hidden');
+    document.getElementById('askResultsArea').classList.remove('hidden');
+
+  } catch (err) {
+    alert(`Mindmap Error: ${err.message}`);
+  } finally {
+    btnMindmap.disabled = false;
+    btnMindmap.innerText = '🧠 Generate Mindmap';
+  }
+}
+
+async function runMergePDFs() {
+  const fileInput = document.getElementById('fileMerge');
+  const btnMerge = document.getElementById('btnMerge');
+
+  if (!fileInput.files || fileInput.files.length < 2) {
+    alert('Please select at least 2 PDF files to merge.');
+    return;
+  }
+
+  btnMerge.disabled = true;
+  btnMerge.innerText = '⏳ Merging PDFs...';
+
+  const formData = new FormData();
+  for (let i = 0; i < fileInput.files.length; i++) {
+    formData.append('files', fileInput.files[i]);
+  }
+
+  try {
+    const response = await fetch('/api/merge', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Merging failed');
+    }
+
+    const data = await response.json();
+
+    const btnDownload = document.getElementById('btnDownloadMerge');
+    btnDownload.href = `data:application/pdf;base64,${data.merged_file_b64}`;
+    document.getElementById('mergeResults').classList.remove('hidden');
+
+  } catch (err) {
+    alert(`Merge Error: ${err.message}`);
+  } finally {
+    btnMerge.disabled = false;
+    btnMerge.innerText = '🔗 Merge PDFs';
+  }
+}
+
+async function runSplitPDF() {
+  const fileInput = document.getElementById('fileSplit');
+  const rangeInput = document.getElementById('inputRange');
+  const btnSplit = document.getElementById('btnSplit');
+
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  btnSplit.disabled = true;
+  btnSplit.innerText = '⏳ Splitting PDF...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('range_str', rangeInput.value.trim());
+
+  try {
+    const response = await fetch('/api/split', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Splitting failed');
+    }
+
+    const data = await response.json();
+
+    const btnDownload = document.getElementById('btnDownloadSplit');
+    btnDownload.href = `data:application/pdf;base64,${data.split_file_b64}`;
+    document.getElementById('splitResults').classList.remove('hidden');
+
+  } catch (err) {
+    alert(`Split Error: ${err.message}`);
+  } finally {
+    btnSplit.disabled = false;
+    btnSplit.innerText = '✂️ Split PDF Pages';
   }
 }

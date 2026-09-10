@@ -19,7 +19,7 @@
         <span class="icon">📄</span>
         <div>
           <h1>PDF Compressor <span class="badge">Hybrid RAG</span></h1>
-          <p class="subtitle">Rules → Vector RAG → Safe Compression & Synthesized Q&A</p>
+          <p class="subtitle">Rules → Vector RAG → Safe Compression, Merge/Split & Mindmaps</p>
         </div>
       </div>
       <div id="healthStatus" class="health-status">
@@ -31,6 +31,7 @@
       <button id="tabCompress" class="tab-btn active" onclick="switchTab('compress')">📄 Single PDF Compressor</button>
       <button id="tabBatch" class="tab-btn" onclick="switchTab('batch')">📁 Batch Compression</button>
       <button id="tabAsk" class="tab-btn" onclick="switchTab('ask')">💬 Ask PDF (RAG Chat)</button>
+      <button id="tabManip" class="tab-btn" onclick="switchTab('manip')">🔀 Merge & Split</button>
       <button id="tabAbout" class="tab-btn" onclick="switchTab('about')">ℹ️ Architecture</button>
     </nav>
 
@@ -53,13 +54,19 @@
             <input type="password" id="inputPassword" class="form-control" placeholder="Optional password">
           </div>
 
-          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" id="chkStripMeta" style="width: auto;">
-            <label for="chkStripMeta" style="margin: 0; cursor: pointer;">Purge PDF Metadata & Annotations</label>
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="chkStripMeta" style="width: auto;">
+              <label for="chkStripMeta" style="margin: 0; cursor: pointer;">Purge PDF Metadata & Annotations</label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="chkGrayscale" style="width: auto;">
+              <label for="chkGrayscale" style="margin: 0; cursor: pointer;">Monochrome / Grayscale Mode (Extra Scan Savings)</label>
+            </div>
           </div>
 
           <div class="drop-zone" id="dropZoneSingle">
-            <span class="upload-icon">MB</span>
+            <span class="upload-icon">📤</span>
             <p><strong>Drag & Drop PDF here</strong></p>
             <p class="subtext">or click to browse files</p>
             <input type="file" id="fileSingle" accept=".pdf" class="file-input">
@@ -188,16 +195,16 @@
       </div>
     </section>
 
-    <!-- TAB 3: Ask PDF (RAG Chat) -->
+    <!-- TAB 3: Ask PDF & Mindmaps -->
     <section id="secAsk" class="tab-content">
       <div class="card glass">
-        <h2>💬 Ask PDF — Semantic RAG Assistant</h2>
-        <p class="subtitle">Upload a PDF document and ask questions. Synthesizes natural language answers with page citations.</p>
+        <h2>💬 Ask PDF & Executive Mindmap Generator</h2>
+        <p class="subtitle">Upload a PDF document to query, synthesize RAG answers, or generate an executive summary and mindmap.</p>
         
         <div class="grid-2">
           <div class="drop-zone" id="dropZoneAsk">
             <span class="upload-icon">🔍</span>
-            <p><strong>Upload PDF for Semantic Q&A</strong></p>
+            <p><strong>Upload PDF for Q&A or Mindmap</strong></p>
             <input type="file" id="fileAsk" accept=".pdf" class="file-input">
             <div id="fileNameAsk" class="file-name"></div>
           </div>
@@ -207,16 +214,26 @@
               <label for="inputQuery">Enter Question or Search Prompt</label>
               <input type="text" id="inputQuery" class="form-control" placeholder="e.g. What is the main conclusion of this report?">
             </div>
-            <button id="btnAsk" class="btn btn-primary" onclick="runAskQuery()" disabled>
-              🔍 Search & Synthesize Answer
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button id="btnAsk" class="btn btn-primary" onclick="runAskQuery()" disabled>
+                🔍 Search Q&A
+              </button>
+              <button id="btnMindmap" class="btn btn-primary" style="background: linear-gradient(135deg, var(--secondary), #0891b2);" onclick="runMindmapGen()" disabled>
+                🧠 Generate Mindmap
+              </button>
+            </div>
           </div>
         </div>
 
         <div id="askResultsArea" class="ask-results hidden" style="margin-top: 1.5rem;">
           <div class="card" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); margin-bottom: 1.5rem;">
-            <h3>🧠 Synthesized RAG Answer</h3>
+            <h3>🧠 Synthesized RAG Answer / Overview</h3>
             <p id="askSynthesizedAnswer" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; margin-top: 0.5rem;"></p>
+          </div>
+
+          <div id="mindmapBox" class="card hidden" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); margin-bottom: 1.5rem;">
+            <h3>🗺️ Executive Mindmap (Mermaid Code)</h3>
+            <pre id="mermaidCodeText" style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 6px; color: var(--secondary); font-size: 0.85rem; overflow-x: auto;"></pre>
           </div>
 
           <h3>🔍 Evidence Passages</h3>
@@ -225,18 +242,66 @@
       </div>
     </section>
 
-    <!-- TAB 4: Architecture -->
+    <!-- TAB 4: Merge & Split PDF Tools -->
+    <section id="secManip" class="tab-content">
+      <div class="grid-2">
+        <div class="card glass">
+          <h2>🔀 Merge Multiple PDFs</h2>
+          <p class="subtitle">Combine 2 or more PDF documents into a single file.</p>
+          <div class="drop-zone" id="dropZoneMerge">
+            <span class="upload-icon">🔗</span>
+            <p><strong>Select PDFs to Merge</strong></p>
+            <input type="file" id="fileMerge" accept=".pdf" multiple class="file-input">
+            <div id="fileNameMerge" class="file-name"></div>
+          </div>
+          <button id="btnMerge" class="btn btn-primary" onclick="runMergePDFs()" disabled>
+            🔗 Merge PDFs
+          </button>
+          <div id="mergeResults" class="hidden" style="margin-top: 1rem;">
+            <a id="btnDownloadMerge" href="#" download="merged.pdf" class="btn btn-success">
+              ⬇️ Download Merged PDF
+            </a>
+          </div>
+        </div>
+
+        <div class="card glass">
+          <h2>✂️ Split PDF Pages</h2>
+          <p class="subtitle">Extract specific page ranges (e.g. 1-3, 5) into a new PDF.</p>
+          <div class="drop-zone" id="dropZoneSplit">
+            <span class="upload-icon">✂️</span>
+            <p><strong>Select PDF to Split</strong></p>
+            <input type="file" id="fileSplit" accept=".pdf" class="file-input">
+            <div id="fileNameSplit" class="file-name"></div>
+          </div>
+          <div class="form-group">
+            <label for="inputRange">Page Range (e.g. 1-3 or 2,5)</label>
+            <input type="text" id="inputRange" class="form-control" value="1-1">
+          </div>
+          <button id="btnSplit" class="btn btn-primary" onclick="runSplitPDF()" disabled>
+            ✂️ Split PDF Pages
+          </button>
+          <div id="splitResults" class="hidden" style="margin-top: 1rem;">
+            <a id="btnDownloadSplit" href="#" download="split.pdf" class="btn btn-success">
+              ⬇️ Download Split PDF
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Architecture -->
     <section id="secAbout" class="tab-content">
       <div class="card glass">
         <h2>ℹ️ System Architecture & RAG Details</h2>
         <div class="arch-content">
           <p>This application is powered by an enterprise-grade <strong>Hybrid RAG System</strong>:</p>
           <ul>
-            <li><strong>PyMuPDF & Tesseract OCR Inspection</strong>: Analyzes font tables, image resolutions, object counts, text density, and falls back to OCR for scanned pages.</li>
-            <li><strong>Deterministic Rule Engine</strong>: Fast-path matching for clear cases (Scanned PDFs, text-heavy PDFs).</li>
+            <li><strong>PyMuPDF & Tesseract OCR Inspection</strong>: Analyzes font tables, image resolutions, object counts, text density, and runs Tesseract OCR fallback for scanned pages.</li>
+            <li><strong>Deterministic Rule Engine</strong>: Fast-path matching for clear document cases.</li>
             <li><strong>FAISS Vector RAG Engine</strong>: Vector semantic search against a knowledge base of compression strategies for ambiguous documents.</li>
-            <li><strong>LLM Synthesizer & RAG Assistant</strong>: Page-level windowed chunking, FAISS vector indexing, and synthesized answer generation.</li>
+            <li><strong>LLM Synthesizer & Mindmap Generator</strong>: Page-level windowed chunking, FAISS vector indexing, and Mermaid mindmap generation.</li>
             <li><strong>Visual Quality Engine</strong>: Computes PSNR (dB) and SSIM (%) quality retention scores.</li>
+            <li><strong>Offline Manipulator Tools</strong>: PyMuPDF page range splitting and multi-document merging.</li>
             <li><strong>Safe Rebuild Pipeline</strong>: PyMuPDF stream deflating paired with Ghostscript binary downsampling.</li>
           </ul>
         </div>
