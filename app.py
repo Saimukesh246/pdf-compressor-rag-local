@@ -3,7 +3,6 @@ import sys
 import argparse
 import time
 
-# Ensure UTF-8 output encoding for Windows terminals
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -13,6 +12,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from analyzer.pdf_analyzer import analyze_pdf
 from rag.indexer import build_index
 from rag.pdf_rag import query_pdf_content
+from rag.llm_synthesizer import synthesize_rag_answer
 from decision.hybrid_decider import decide_strategy
 from compressor.pdf_optimizer import compress_pdf, find_ghostscript
 
@@ -30,12 +30,12 @@ def load_rag_knowledge():
     index, _ = build_index(knowledge)
     return knowledge, index
 
-def process_single_pdf(input_path, output_path, level, knowledge, rag_index):
+def process_single_pdf(input_path, output_path, level, knowledge, rag_index, password=None, strip_metadata=False):
     print(f"\nProcessing: {input_path}")
     start_time = time.time()
     
     # 1. Analyze PDF
-    metrics = analyze_pdf(input_path)
+    metrics = analyze_pdf(input_path, password=password)
     print(f"  * Pages: {metrics['page_count']} | Images: {metrics['image_count']} | Text chars: {metrics['text_length']} | Scanned: {metrics['is_scanned']}")
     print(f"  * Original Size: {metrics['file_size_kb']:.2f} KB")
 
@@ -50,11 +50,12 @@ def process_single_pdf(input_path, output_path, level, knowledge, rag_index):
             print(f"    [{idx}] (Similarity: {match['similarity']*100:.1f}%, Distance: {match['distance']:.3f}) {match['text'].replace(chr(10), ' ')}")
 
     # 3. Compress PDF
-    stats = compress_pdf(input_path, output_path, level=level)
+    stats = compress_pdf(input_path, output_path, level=level, password=password, strip_metadata=strip_metadata)
     elapsed = time.time() - start_time
 
     print(f"  [SUCCESS] Compressed Size: {stats['compressed_size_kb']:.2f} KB")
     print(f"  [SUCCESS] Size Reduction: {stats['reduction_percent']:.2f}%")
+    print(f"  [SUCCESS] Quality Metrics -> PSNR: {stats['psnr_db']} dB | SSIM: {stats['ssim_percent']}%")
     print(f"  [SUCCESS] Time Elapsed: {elapsed:.2f}s")
     print(f"  [SUCCESS] Output saved to: {output_path}")
 
@@ -66,7 +67,11 @@ def handle_pdf_ask_query(pdf_path, query):
         print("⚠️ No text passages found in PDF or failed to build RAG index.")
         return
 
-    print("\n🔍 Top Retrieved Passages:")
+    synthesized_answer = synthesize_rag_answer(query, results)
+    print("\n🧠 Synthesized RAG Answer:")
+    print(synthesized_answer)
+
+    print("\n🔍 Evidence Passages:")
     for idx, match in enumerate(results, 1):
         print(f"\n--- Match [{idx}] | Page {match['page']} | Similarity: {match['similarity']*100:.1f}% ---")
         print(match['text'])
@@ -76,12 +81,13 @@ def main():
     parser.add_argument("-i", "--input", required=True, help="Input PDF file or directory path")
     parser.add_argument("-o", "--output", help="Output PDF file or directory path (default: <input>_compressed.pdf)")
     parser.add_argument("-l", "--level", choices=["low", "medium", "high"], default="medium", help="Compression level (default: medium)")
+    parser.add_argument("-p", "--password", help="Password for encrypted PDF files")
+    parser.add_argument("--strip-metadata", action="store_true", help="Purge PDF title, author, and annotations")
     parser.add_argument("-b", "--batch", action="store_true", help="Process directory of PDF files in batch mode")
     parser.add_argument("-a", "--ask", help="Ask a semantic question about the PDF document content using RAG")
 
     args = parser.parse_args()
 
-    # Handle PDF RAG Query mode
     if args.ask:
         if not os.path.isfile(args.input):
             print(f"Error: PDF file not found: {args.input}", file=sys.stderr)
@@ -115,7 +121,7 @@ def main():
             in_file = os.path.join(args.input, pdf_file)
             out_file = os.path.join(output_dir, f"compressed_{pdf_file}")
             try:
-                process_single_pdf(in_file, out_file, args.level, knowledge, rag_index)
+                process_single_pdf(in_file, out_file, args.level, knowledge, rag_index, password=args.password, strip_metadata=args.strip_metadata)
             except Exception as e:
                 print(f"Failed to compress {pdf_file}: {e}")
 
@@ -129,7 +135,7 @@ def main():
             base, ext = os.path.splitext(args.input)
             output_path = f"{base}_compressed{ext}"
 
-        process_single_pdf(args.input, output_path, args.level, knowledge, rag_index)
+        process_single_pdf(args.input, output_path, args.level, knowledge, rag_index, password=args.password, strip_metadata=args.strip_metadata)
 
 if __name__ == "__main__":
     main()

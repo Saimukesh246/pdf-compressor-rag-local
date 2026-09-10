@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFileInputs();
 });
 
-// Health check
 async function checkHealth() {
   const healthText = document.getElementById('healthText');
   try {
@@ -22,7 +21,6 @@ async function checkHealth() {
   }
 }
 
-// Tab Switcher
 function switchTab(tabName) {
   const tabs = ['compress', 'batch', 'ask', 'about'];
   tabs.forEach(t => {
@@ -40,7 +38,6 @@ function switchTab(tabName) {
   });
 }
 
-// File Input Setup
 function setupFileInputs() {
   const singleInput = document.getElementById('fileSingle');
   const btnCompress = document.getElementById('btnCompress');
@@ -82,16 +79,19 @@ function setupFileInputs() {
   }
 }
 
-// Single PDF Compression API Call
 async function runSingleCompression() {
   const fileInput = document.getElementById('fileSingle');
   const levelSelect = document.getElementById('levelSelect');
+  const inputPassword = document.getElementById('inputPassword');
+  const chkStripMeta = document.getElementById('chkStripMeta');
   const btnCompress = document.getElementById('btnCompress');
 
   if (!fileInput.files || fileInput.files.length === 0) return;
 
   const file = fileInput.files[0];
   const level = levelSelect.value;
+  const password = inputPassword ? inputPassword.value : '';
+  const stripMeta = chkStripMeta ? chkStripMeta.checked : false;
 
   btnCompress.disabled = true;
   btnCompress.innerText = '⏳ Compressing PDF...';
@@ -99,6 +99,8 @@ async function runSingleCompression() {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('level', level);
+  if (password) formData.append('password', password);
+  formData.append('strip_metadata', stripMeta);
 
   try {
     const response = await fetch('/api/compress', {
@@ -113,7 +115,6 @@ async function runSingleCompression() {
 
     const data = await response.json();
 
-    // Render Metrics
     document.getElementById('analysisPlaceholder').classList.add('hidden');
     document.getElementById('analysisResults').classList.remove('hidden');
 
@@ -127,15 +128,19 @@ async function runSingleCompression() {
 
     document.getElementById('metCompSize').innerText = `${data.stats.compressed_size_kb.toFixed(1)} KB`;
     document.getElementById('metReduction').innerText = `${data.stats.reduction_percent.toFixed(1)}%`;
+    if (document.getElementById('metPsnr')) {
+      document.getElementById('metPsnr').innerText = `${data.stats.psnr_db.toFixed(1)} dB`;
+    }
+    if (document.getElementById('metSsim')) {
+      document.getElementById('metSsim').innerText = `${data.stats.ssim_percent.toFixed(1)}%`;
+    }
 
     document.getElementById('compResultsArea').classList.remove('hidden');
 
-    // Download Link
     const btnDownload = document.getElementById('btnDownload');
     btnDownload.href = `data:application/pdf;base64,${data.compressed_file_b64}`;
     btnDownload.download = `compressed_${data.filename}`;
 
-    // Render Previews
     if (data.preview_original_b64 && data.preview_compressed_b64) {
       document.getElementById('previewCard').classList.remove('hidden');
       document.getElementById('imgPreviewOrig').src = `data:image/png;base64,${data.preview_original_b64}`;
@@ -150,7 +155,6 @@ async function runSingleCompression() {
   }
 }
 
-// Batch PDF Compression API Call
 async function runBatchCompression() {
   const fileInput = document.getElementById('fileBatch');
   const btnBatch = document.getElementById('btnBatch');
@@ -206,7 +210,6 @@ async function runBatchCompression() {
   }
 }
 
-// Ask PDF RAG Query API Call
 async function runAskQuery() {
   const fileInput = document.getElementById('fileAsk');
   const queryInput = document.getElementById('inputQuery');
@@ -222,7 +225,7 @@ async function runAskQuery() {
   }
 
   btnAsk.disabled = true;
-  btnAsk.innerText = '⏳ Searching Vector Index...';
+  btnAsk.innerText = '⏳ Searching & Synthesizing...';
 
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
@@ -240,6 +243,11 @@ async function runAskQuery() {
     }
 
     const data = await response.json();
+
+    if (document.getElementById('askSynthesizedAnswer')) {
+      document.getElementById('askSynthesizedAnswer').innerText = data.synthesized_answer || 'No synthesis generated.';
+    }
+
     const container = document.getElementById('askMatchesContainer');
     container.innerHTML = '';
 
@@ -266,6 +274,6 @@ async function runAskQuery() {
     alert(`RAG Query Error: ${err.message}`);
   } finally {
     btnAsk.disabled = false;
-    btnAsk.innerText = '🔍 Search PDF Content';
+    btnAsk.innerText = '🔍 Search & Synthesize Answer';
   }
 }

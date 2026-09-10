@@ -47,15 +47,32 @@ def find_ghostscript():
     return None
 
 
-def safe_optimize_pdf(input_pdf, output_pdf):
+def safe_optimize_pdf(input_pdf, output_pdf, password=None, strip_metadata=False):
     """
-    Performs initial safe PDF cleanup and structure optimization using PyMuPDF.
+    Performs initial safe PDF cleanup, decryption, and structure optimization using PyMuPDF.
     
     Args:
         input_pdf (str): Source PDF path
         output_pdf (str): Destination PDF path
+        password (str, optional): Password for encrypted PDF
+        strip_metadata (bool): If True, purges PDF author, title, creation date, and annotations.
     """
     doc = fitz.open(input_pdf)
+    if doc.is_encrypted:
+        if password:
+            if not doc.authenticate(password):
+                doc.close()
+                raise ValueError("Incorrect password for encrypted PDF.")
+        else:
+            doc.close()
+            raise ValueError("PDF is encrypted. Password required.")
+
+    if strip_metadata:
+        doc.set_metadata({})
+        for page in doc:
+            for annot in page.annots():
+                page.delete_annot(annot)
+
     doc.save(
         output_pdf,
         garbage=4,
@@ -68,11 +85,6 @@ def safe_optimize_pdf(input_pdf, output_pdf):
 def compress_with_ghostscript(input_pdf, output_pdf, level="medium"):
     """
     Compresses a PDF file using Ghostscript.
-    
-    Args:
-        input_pdf (str): Input file path
-        output_pdf (str): Output file path
-        level (str): Compression level ('low', 'medium', 'high' or 'printer', 'ebook', 'screen')
     """
     gs_path = find_ghostscript()
     if not gs_path:
@@ -99,20 +111,11 @@ def compress_with_ghostscript(input_pdf, output_pdf, level="medium"):
 
 def calculate_quality_metrics(orig_img, comp_img):
     """
-    Computes PSNR (Peak Signal-to-Noise Ratio) and SSIM (Structural Similarity Index)
-    between original and compressed page rendered images.
-    
-    Args:
-        orig_img (PIL.Image.Image): Original page rendering
-        comp_img (PIL.Image.Image): Compressed page rendering
-        
-    Returns:
-        dict: Containing 'psnr_db' and 'ssim_percent'.
+    Computes PSNR (Peak Signal-to-Noise Ratio) and SSIM (Structural Similarity Index).
     """
     if not orig_img or not comp_img:
         return {"psnr_db": 0.0, "ssim_percent": 100.0}
 
-    # Ensure matching sizes and grayscale conversion
     orig = orig_img.convert("L")
     comp = comp_img.convert("L")
 
@@ -122,14 +125,12 @@ def calculate_quality_metrics(orig_img, comp_img):
     arr1 = np.array(orig, dtype=np.float64)
     arr2 = np.array(comp, dtype=np.float64)
 
-    # 1. PSNR Calculation
     mse = np.mean((arr1 - arr2) ** 2)
     if mse == 0:
         psnr = 100.0
     else:
         psnr = float(20.0 * np.log10(255.0 / np.sqrt(mse)))
 
-    # 2. Simplified SSIM Calculation
     c1 = (0.01 * 255) ** 2
     c2 = (0.03 * 255) ** 2
 
@@ -148,28 +149,18 @@ def calculate_quality_metrics(orig_img, comp_img):
     }
 
 
-def compress_pdf(input_pdf, output_pdf, level="medium"):
+def compress_pdf(input_pdf, output_pdf, level="medium", password=None, strip_metadata=False):
     """
-    Executes the full compression pipeline: safe PyMuPDF cleaning followed by Ghostscript compression.
-    
-    Args:
-        input_pdf (str): Path to input PDF
-        output_pdf (str): Path to save compressed PDF
-        level (str): Compression level ('low', 'medium', 'high')
-        
-    Returns:
-        dict: Stats containing original size (KB), compressed size (KB), reduction %, PSNR, and SSIM.
+    Executes the full compression pipeline with password decryption and metadata stripping options.
     """
     if not os.path.exists(input_pdf):
         raise FileNotFoundError(f"Input file not found: {input_pdf}")
 
     original_size = os.path.getsize(input_pdf) / 1024.0
-
-    # Intermediate file for safe PyMuPDF optimization
     intermediate_pdf = output_pdf + ".tmp.pdf"
 
     try:
-        safe_optimize_pdf(input_pdf, intermediate_pdf)
+        safe_optimize_pdf(input_pdf, intermediate_pdf, password=password, strip_metadata=strip_metadata)
         compress_with_ghostscript(intermediate_pdf, output_pdf, level=level)
     finally:
         if os.path.exists(intermediate_pdf):
@@ -181,8 +172,7 @@ def compress_pdf(input_pdf, output_pdf, level="medium"):
     compressed_size = os.path.getsize(output_pdf) / 1024.0
     reduction = ((original_size - compressed_size) / original_size * 100.0) if original_size > 0 else 0.0
 
-    # Render page 1 for quality metrics calculation
-    orig_img = render_page_preview(input_pdf, page_num=0)
+    orig_img = render_page_preview(input_pdf, page_num=0, password=password)
     comp_img = render_page_preview(output_pdf, page_num=0)
     q_metrics = calculate_quality_metrics(orig_img, comp_img)
 
@@ -195,22 +185,16 @@ def compress_pdf(input_pdf, output_pdf, level="medium"):
     }
 
 
-def render_page_preview(pdf_path, page_num=0, dpi=100):
+def render_page_preview(pdf_path, page_num=0, dpi=100, password=None):
     """
     Renders a single page of a PDF file to a PIL Image.
-    
-    Args:
-        pdf_path (str): Path to PDF
-        page_num (int): Page index to render (0-indexed)
-        dpi (int): Resolution DPI for rendering
-        
-    Returns:
-        PIL.Image.Image or None: Rendered page image
     """
     if not os.path.exists(pdf_path):
         return None
     try:
         doc = fitz.open(pdf_path)
+        if doc.is_encrypted and password:
+            doc.authenticate(password)
         if len(doc) <= page_num:
             page_num = 0
         page = doc[page_num]

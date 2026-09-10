@@ -1,10 +1,14 @@
 import os
 import fitz
 
-def analyze_pdf(path):
+def analyze_pdf(path, password=None):
     """
     Analyzes a PDF file to extract structural and content metrics.
     
+    Args:
+        path (str): Path to PDF file
+        password (str, optional): Password for encrypted PDFs
+        
     Returns:
         dict: Summary metrics including page count, file size, image count, text length,
               scanned status, and average content density.
@@ -14,8 +18,17 @@ def analyze_pdf(path):
 
     file_size_kb = os.path.getsize(path) / 1024.0
     doc = fitz.open(path)
-    page_count = len(doc)
+    
+    if doc.is_encrypted:
+        if password:
+            if not doc.authenticate(password):
+                doc.close()
+                raise ValueError("Incorrect password for encrypted PDF.")
+        else:
+            doc.close()
+            raise ValueError("PDF is encrypted. Password required.")
 
+    page_count = len(doc)
     image_count = 0
     text_length = 0
 

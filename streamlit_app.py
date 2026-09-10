@@ -9,6 +9,7 @@ from analyzer.pdf_analyzer import analyze_pdf
 from decision.hybrid_decider import decide_strategy
 from rag.indexer import build_index
 from rag.pdf_rag import build_pdf_index, query_pdf_content
+from rag.llm_synthesizer import synthesize_rag_answer
 from compressor.pdf_optimizer import (
     find_ghostscript,
     compress_pdf,
@@ -53,7 +54,7 @@ knowledge, rag_index = load_rag()
 # Streamlit Header
 # =========================================================
 st.title("📄 PDF Compressor & RAG Assistant")
-st.caption("⚡ Rule Engine → 🧠 Vector RAG Fallback → 💬 PDF Semantic RAG Chat → 🛡️ Ghostscript Safe Rebuild")
+st.caption("⚡ Rule Engine → 🧠 Vector RAG Fallback → 💬 LLM Synthesized Q&A → 🛡️ Ghostscript Safe Rebuild")
 
 if not GS_PATH:
     st.error(
@@ -95,6 +96,9 @@ with tab_single:
         }
         selected_level = level_key_map[compression_level]
 
+        pdf_password = st.text_input("PDF Password (if encrypted)", type="password")
+        strip_metadata_toggle = st.checkbox("Purge Metadata & Annotations", value=False)
+
         st.info(
             "• **Low**: Visually lossless print quality\n"
             "• **Medium**: Balanced quality & size (ebook)\n"
@@ -131,89 +135,87 @@ with tab_single:
             with open(input_path, "wb") as f:
                 f.write(active_file.read())
 
+            pwd = pdf_password.strip() if pdf_password.strip() else None
+
             # -----------------------------------------------------
             # Analysis & Hybrid Decision Step
             # -----------------------------------------------------
-            metrics = analyze_pdf(input_path)
-            strategy, decision_mode, rag_details = decide_strategy(metrics, rag_index, knowledge)
+            try:
+                metrics = analyze_pdf(input_path, password=pwd)
+                strategy, decision_mode, rag_details = decide_strategy(metrics, rag_index, knowledge)
 
-            # Display Metrics & Strategy
-            st.subheader("📊 Document Analysis & Decision Strategy")
-            m1, m2, m3, m4, m5 = st.columns(5)
-            m1.metric("Original Size", f"{metrics['file_size_kb']:.1f} KB")
-            m2.metric("Page Count", metrics['page_count'])
-            m3.metric("Image Count", metrics['image_count'])
-            m4.metric("Text Chars", metrics['text_length'])
-            m5.metric("Scanned Doc", "Yes" if metrics['is_scanned'] else "No")
+                # Display Metrics & Strategy
+                st.subheader("📊 Document Analysis & Decision Strategy")
+                m1, m2, m3, m4, m5 = st.columns(5)
+                m1.metric("Original Size", f"{metrics['file_size_kb']:.1f} KB")
+                m2.metric("Page Count", metrics['page_count'])
+                m3.metric("Image Count", metrics['image_count'])
+                m4.metric("Text Chars", metrics['text_length'])
+                m5.metric("Scanned Doc", "Yes" if metrics['is_scanned'] else "No")
 
-            badge_color = "🟢" if decision_mode == "RULE-BASED" else "🧠"
-            st.markdown(f"### {badge_color} Engine Mode: **{decision_mode}**")
-            st.info(f"**Recommended Strategy**: {strategy}")
+                badge_color = "🟢" if decision_mode == "RULE-BASED" else "🧠"
+                st.markdown(f"### {badge_color} Engine Mode: **{decision_mode}**")
+                st.info(f"**Recommended Strategy**: {strategy}")
 
-            # RAG Match Details Expander
-            with st.expander("🔍 Inspect RAG Vector Search & Candidate Matches"):
-                st.write(f"**Decision Mode:** `{decision_mode}`")
-                if rag_details:
-                    for idx, match in enumerate(rag_details, 1):
-                        st.markdown(f"**Match [{idx}]**: {match.get('text', '')}")
-                        if "similarity" in match:
-                            st.progress(min(max(match["similarity"], 0.0), 1.0))
-                            st.caption(f"Similarity Score: {match['similarity']*100:.1f}% | Distance: {match.get('distance', 0.0):.4f}")
+                # RAG Match Details Expander
+                with st.expander("🔍 Inspect RAG Vector Search & Candidate Matches"):
+                    st.write(f"**Decision Mode:** `{decision_mode}`")
+                    if rag_details:
+                        for idx, match in enumerate(rag_details, 1):
+                            st.markdown(f"**Match [{idx}]**: {match.get('text', '')}")
+                            if "similarity" in match:
+                                st.progress(min(max(match["similarity"], 0.0), 1.0))
+                                st.caption(f"Similarity Score: {match['similarity']*100:.1f}% | Distance: {match.get('distance', 0.0):.4f}")
 
-            if st.button("🚀 Compress PDF", type="primary", use_container_width=True):
-                with st.spinner("Processing PDF compression pipeline..."):
-                    start_t = time.time()
-                    try:
-                        stats = compress_pdf(input_path, output_path, level=selected_level)
-                        elapsed = time.time() - start_t
-                        
-                        st.success(f"✅ Compression complete in {elapsed:.2f}s!")
-
-                        # Metrics Results
-                        res1, res2, res3 = st.columns(3)
-                        res1.metric("Original Size", f"{stats['original_size_kb']:.2f} KB")
-                        res2.metric("Compressed Size", f"{stats['compressed_size_kb']:.2f} KB")
-                        res3.metric("Size Reduction", f"{stats['reduction_percent']:.2f}%")
-
-                        # Download Button
-                        with open(output_path, "rb") as pdf_file:
-                            pdf_bytes = pdf_file.read()
-                            
-                        st.download_button(
-                            label="⬇️ Download Compressed PDF",
-                            data=pdf_bytes,
-                            file_name=f"compressed_{active_file.name}",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-
-                        # Save persistent output copy
+                if st.button("🚀 Compress PDF", type="primary", use_container_width=True):
+                    with st.spinner("Processing PDF compression pipeline..."):
+                        start_t = time.time()
                         try:
-                            with open("compressed_output.pdf", "wb") as pf:
-                                pf.write(pdf_bytes)
-                        except Exception:
-                            pass
+                            stats = compress_pdf(input_path, output_path, level=selected_level, password=pwd, strip_metadata=strip_metadata_toggle)
+                            elapsed = time.time() - start_t
+                            
+                            st.success(f"✅ Compression complete in {elapsed:.2f}s!")
 
-                        # -----------------------------------------------------
-                        # Visual Before vs. After Page Preview
-                        # -----------------------------------------------------
-                        st.divider()
-                        st.subheader("👁️ Visual Before vs. After Page Preview")
-                        
-                        orig_img = render_page_preview(input_path, page_num=0)
-                        comp_img = render_page_preview(output_path, page_num=0)
+                            # Metrics Results
+                            res1, res2, res3, res4, res5 = st.columns(5)
+                            res1.metric("Original Size", f"{stats['original_size_kb']:.1f} KB")
+                            res2.metric("Compressed Size", f"{stats['compressed_size_kb']:.1f} KB")
+                            res3.metric("Size Reduction", f"{stats['reduction_percent']:.1f}%")
+                            res4.metric("PSNR Quality", f"{stats['psnr_db']} dB")
+                            res5.metric("SSIM Similarity", f"{stats['ssim_percent']}%")
 
-                        if orig_img and comp_img:
-                            prev_col1, prev_col2 = st.columns(2)
-                            with prev_col1:
-                                st.caption("📷 Original Document (Page 1)")
-                                st.image(orig_img, use_column_width=True)
-                            with prev_col2:
-                                st.caption("✨ Compressed Document (Page 1)")
-                                st.image(comp_img, use_column_width=True)
+                            # Download Button
+                            with open(output_path, "rb") as pdf_file:
+                                pdf_bytes = pdf_file.read()
+                                
+                            st.download_button(
+                                label="⬇️ Download Compressed PDF",
+                                data=pdf_bytes,
+                                file_name=f"compressed_{active_file.name}",
+                                mime="application/pdf",
+                                use_container_width=True
+                            )
 
-                    except Exception as e:
-                        st.error(f"❌ Compression failed: {e}")
+                            # Visual Preview
+                            st.divider()
+                            st.subheader("👁️ Visual Before vs. After Page Preview (Page 1)")
+                            
+                            orig_img = render_page_preview(input_path, page_num=0, password=pwd)
+                            comp_img = render_page_preview(output_path, page_num=0)
+
+                            if orig_img and comp_img:
+                                prev_col1, prev_col2 = st.columns(2)
+                                with prev_col1:
+                                    st.caption("📷 Original Document (Page 1)")
+                                    st.image(orig_img, use_column_width=True)
+                                with prev_col2:
+                                    st.caption("✨ Compressed Document (Page 1)")
+                                    st.image(comp_img, use_column_width=True)
+
+                        except Exception as e:
+                            st.error(f"❌ Compression failed: {e}")
+            except Exception as ex:
+                st.error(f"❌ Failed to analyze PDF: {ex}")
 
 # =========================================================
 # TAB 2: Batch PDF Compression
@@ -261,7 +263,8 @@ with tab_batch:
                             "name": file.name,
                             "original_kb": stats["original_size_kb"],
                             "compressed_kb": stats["compressed_size_kb"],
-                            "reduction": stats["reduction_percent"]
+                            "reduction": stats["reduction_percent"],
+                            "ssim": stats["ssim_percent"]
                         })
                     except Exception as e:
                         st.error(f"Failed to compress {file.name}: {e}")
@@ -270,11 +273,8 @@ with tab_batch:
 
         status_text.text("✅ Batch compression complete!")
         st.success(f"Successfully processed {len(compressed_results)} PDF files!")
-
-        # Results Summary Table
         st.table(compressed_results)
 
-        # Download ZIP
         zip_buffer.seek(0)
         st.download_button(
             label="⬇️ Download All Compressed PDFs (.zip)",
@@ -288,12 +288,10 @@ with tab_batch:
 # TAB 3: 💬 Ask PDF (RAG Assistant)
 # =========================================================
 with tab_ask_pdf:
-    st.subheader("💬 Ask PDF — Semantic RAG Search")
-    st.write("Perform RAG vector search over the text content of any uploaded PDF file using FAISS vector indexing.")
+    st.subheader("💬 Ask PDF — Semantic RAG Assistant")
+    st.write("Perform RAG vector search and natural language synthesis over the text content of any uploaded PDF.")
 
     rag_pdf_file = st.file_uploader("Upload a PDF to query", type=["pdf"], key="rag_pdf_uploader")
-    
-    # Allow fallback to active file from tab 1 if available
     target_pdf = rag_pdf_file if rag_pdf_file else active_file
 
     if target_pdf:
@@ -308,13 +306,17 @@ with tab_ask_pdf:
                 with open(tmp_pdf_path, "wb") as f:
                     f.write(target_pdf.read())
 
-                with st.spinner("Building vector index and querying PDF..."):
+                with st.spinner("Building vector index and synthesizing answer..."):
                     results = query_pdf_content(tmp_pdf_path, user_query, top_k=4)
+                    synthesized_answer = synthesize_rag_answer(user_query, results)
 
                 if not results:
-                    st.warning("⚠️ No relevant text passages found in this document (or document contains no extractable text).")
+                    st.warning("⚠️ No relevant text passages found in this document.")
                 else:
-                    st.success(f"Found {len(results)} relevant passages!")
+                    st.markdown("### 🧠 Synthesized RAG Answer")
+                    st.success(synthesized_answer)
+
+                    st.markdown("### 🔍 Evidence Passages")
                     for idx, match in enumerate(results, 1):
                         st.markdown(f"#### Match [{idx}] — Page {match['page']}")
                         st.progress(min(max(match["similarity"], 0.0), 1.0))
@@ -329,12 +331,12 @@ with tab_ask_pdf:
 with tab_about:
     st.subheader("🏗️ Architecture & RAG System Overview")
     st.markdown("""
-    This application features a multi-tiered **Hybrid RAG System**:
+    This application features an enterprise-grade **Hybrid RAG System**:
     
-    1. **PyMuPDF Content Inspection**: Analyzes page density, image streams, font structures, and text lengths.
-    2. **Deterministic Rule Engine**: Instantly matches confident heuristics (e.g. Scanned PDFs, text-heavy PDFs).
-    3. **Strategy RAG Engine**: For ambiguous mixed-media documents, uses `sentence-transformers` vector search (`all-MiniLM-L6-v2`) against a FAISS vector index of PDF optimization strategies.
-    4. **Document Content RAG Assistant**: Splits PDF text into overlapping chunks, computes embeddings, builds in-memory FAISS indices, and retrieves exact page passages matching user search prompts.
-    5. **PyMuPDF Object Stream Pre-Cleaning**: Removes unused objects (`garbage=4`) and cleans stream tables safely.
-    6. **Ghostscript Rebuild**: Re-encodes and downsamples color channels using `pdfwrite` without corrupting transparency or producing black images.
+    1. **PyMuPDF / Tesseract OCR Inspection**: Analyzes page density, image streams, font structures, and runs Tesseract OCR fallback for scanned pages.
+    2. **Deterministic Rule Engine**: Instantly matches confident heuristics for clear document cases.
+    3. **Strategy RAG Engine**: Vector semantic search against a FAISS index of PDF optimization strategies.
+    4. **LLM RAG Synthesizer**: Page-level windowed chunking, FAISS vector indexing, and synthesized answer generation.
+    5. **Visual Quality Metrics Engine**: Calculates PSNR (dB) and SSIM (%) quality retention scores.
+    6. **Safe Rebuild Pipeline**: PyMuPDF stream deflating paired with Ghostscript binary downsampling.
     """)
