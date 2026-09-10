@@ -1,13 +1,19 @@
 Image-heavy PDF:
 Downscale images to 150 DPI
-Convert images to JPEG
-Apply aggressive compression
+Convert images to JPEG format
+Apply lossy image compression and downsampling
 
 Text-heavy PDF:
-Remove unused fonts
-Optimize object streams
-Enable deflate compression
+Remove unused fonts and subsets
+Optimize PDF object streams
+Enable deflate stream compression
 
 Scanned PDF:
-Apply OCR
-Compress extracted images aggressively
+Apply deskew and grayscale downsampling
+Compress background images aggressively
+Maintain OCR text layer if present
+
+Mixed Content PDF:
+Balance image resolution at 200 DPI
+Clean unused objects and deduplicate font streams
+Apply adaptive stream deflate compression

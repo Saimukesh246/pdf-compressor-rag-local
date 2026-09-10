@@ -1,242 +1,158 @@
-# 📄 PDF Compressor (Hybrid RAG + Ghostscript)
+# 📄 PDF Compressor & RAG Engine (Hybrid Rules + FAISS + Ghostscript + Vercel)
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Serverless-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-App-red?logo=streamlit)](https://streamlit.io/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployable-black?logo=vercel)](https://vercel.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active-success)]()
-[![Ghostscript](https://img.shields.io/badge/Ghostscript-Required-blueviolet)](https://www.ghostscript.com/)
 
-A **fully offline PDF compression tool** built with **Python** and **Streamlit**.  
-It uses a hybrid (Rules + RAG) decision engine to choose the best compression
-strategy, and **Ghostscript** for safe, high-quality PDF rebuilding —  
-no cloud, no API calls, and no black images or file corruption.
+An enterprise-grade, offline-first **PDF Compression and RAG Semantic Assistant System**.  
+It blends a **hybrid decision engine** (Deterministic Rules + FAISS Vector RAG) with **PyMuPDF object cleaning**, **Ghostscript rebuilding**, **Tesseract OCR**, and **SSIM/PSNR visual quality verification**.
+
+Deployable on **Vercel** (FastAPI serverless backend + Glassmorphism Web UI), **Streamlit Community Cloud**, or **Docker** containers.
 
 ---
 
 ## 🚀 Key Features
 
-✅ 100% offline (no local or remote APIs)  
-⚡ Fast rule-based decision engine  
-🧠 RAG fallback for ambiguous PDFs  
-🌀 Ghostscript-powered compression (industry standard)  
-🧩 Up to 80% file size reduction  
-💾 One-click PDF download via Streamlit UI  
-🖼️ No corrupted images or broken transparency  
-
----
-
-## 🧠 Why Hybrid (Rules + RAG)?
-
-PDF compression is deterministic, but **selecting the right strategy isn’t**.
-
-This project blends:
-- **Rule-based heuristics** → for clear, predictable cases.
-- **RAG (Retrieval-Augmented Generation)** → for uncertain cases, using vector search to retrieve the best past strategy.
-
-> 🧩 Note: RAG is *only* used for decision-making, not compression itself.
+- ✅ **Hybrid Decision Engine**: Rules fast-path + FAISS Vector RAG fallback for strategy selection.
+- 💬 **Ask PDF (RAG Assistant)**: Page-level windowed chunking and in-memory FAISS semantic Q&A over PDF content.
+- 🛡️ **Ghostscript + PyMuPDF Safe Rebuild**: Up to 85% file size reduction without black images or lost transparency.
+- 📐 **Visual Quality Metrics**: Calculates real-time **PSNR** (dB) and **SSIM** (%) visual retention scores.
+- 🔤 **OCR Engine**: Tesseract OCR fallback for text extraction from scanned/image-only PDFs.
+- 👁️ **Before / After Visual Page Preview**: Side-by-side Page 1 rendered image comparison.
+- 📁 **Batch Compression**: Process multiple PDFs in parallel and export ZIP archives.
+- ⚡ **Multi-Platform Deployment**: Vercel Serverless API, Streamlit Web App, CLI tool, or Docker container.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-PDF Upload  
-   │  
-   ▼  
-PDF Analyzer (PyMuPDF)  
-   │  
-   ▼  
-Rule Engine ── confident? ── YES → Strategy  
-       │  
-       NO  
-       ▼  
-     RAG Search (FAISS + embeddings)  
-       │  
-       ▼  
-Compression Strategy  
-       │  
-       ▼  
-Safe PDF Rebuild (Ghostscript)  
-       │  
-       ▼  
-Compressed PDF Download
+PDF Upload / Input
+       │
+       ▼
+PDF Content & Structure Inspection (PyMuPDF / Tesseract OCR)
+       │
+       ▼
+Rule Engine ── Confident? ── YES ──► Selected Strategy
+       │
+       NO
+       ▼
+RAG Vector Search (FAISS + sentence-transformers) ──► Selected Strategy
+       │
+       ▼
+PyMuPDF Safe Stream Clean (garbage=4, deflate=True)
+       │
+       ▼
+Ghostscript PDF Rebuild & Downsampling (pdfwrite)
+       │
+       ▼
+Quality Metrics (PSNR / SSIM) & Compressed PDF Download
 ```
 
 ---
 
-## 🧰 Tech Stack
-
-| Component | Technology |
-|------------|-------------|
-| UI | Streamlit |
-| PDF Analyzer | PyMuPDF |
-| Decision Engine | Rules + RAG |
-| Embeddings | Sentence-Transformers |
-| Vector Search | FAISS |
-| Compression Engine | Ghostscript |
-| Language | Python |
-
----
-
-## 📦 Project Structure
+## 📂 Project Structure
 
 ```text
 pdf-compressor-rag-local/
-│
-├── streamlit_app.py
-├── README.md
-├── requirements.txt
-│
+├── api/
+│   └── index.py            # FastAPI Serverless Backend for Vercel
 ├── analyzer/
-│   └── pdf_analyzer.py
-│
+│   └── pdf_analyzer.py     # PDF Structural & Density Inspector
 ├── decision/
-│   └── rule_engine.py
-│
-├── rag/
-│   ├── embedder.py
-│   ├── indexer.py
-│   └── retriever.py
-│
+│   ├── rule_engine.py      # Deterministic Rule Heuristics
+│   └── hybrid_decider.py   # Hybrid Rules + RAG Strategy Decider
 ├── compressor/
-│   └── pdf_optimizer.py
-│
-└── data/
-    └── knowledge_base.txt
+│   └── pdf_optimizer.py    # PyMuPDF + Ghostscript Compressor & SSIM/PSNR Engine
+├── rag/
+│   ├── embedder.py         # SentenceTransformer Embeddings
+│   ├── indexer.py          # FAISS Knowledge Base Indexer
+│   ├── retriever.py        # Top-K Strategy Scored Retriever
+│   └── pdf_rag.py          # PDF Document Content Chunking & Vector Search
+├── ocr/
+│   └── ocr_engine.py       # Tesseract OCR Extraction Engine
+├── public/
+│   ├── index.html          # Glassmorphism HTML5 Web UI
+│   ├── style.css           # Dark Mode CSS Design System
+│   └── app.js             # Client JS connecting REST endpoints
+├── tests/
+│   ├── test_compressor.py  # Unit Tests for Analyzer & Compressor
+│   ├── test_rag.py         # Unit Tests for RAG & FAISS Search
+│   └── test_api.py         # Unit Tests for FastAPI Endpoints
+├── data/
+│   └── knowledge_base.txt  # RAG Strategy Knowledge Items
+├── app.py                  # CLI Interface (--ask & --batch)
+├── streamlit_app.py        # Streamlit Interactive Web App
+├── vercel.json             # Vercel Deployment Config
+├── Dockerfile              # Container Build File
+├── docker-compose.yml      # Docker Compose Config
+└── requirements.txt        # Python Dependencies
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+## 💻 Quick Start & Usage
 
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/<your-username>/pdf-compressor-rag-local.git
-cd pdf-compressor-rag-local
+### 1. Command Line Interface (CLI)
+```powershell
+# Compress a single PDF
+python app.py -i document.pdf -o compressed.pdf -l medium
+
+# Batch compress an entire folder
+python app.py -i ./pdf_folder -o ./output_folder -l high --batch
+
+# Ask a semantic RAG question about any PDF document
+python app.py -i document.pdf --ask "What are the main findings in this report?"
 ```
 
-### 2️⃣ Create and Activate Virtual Environment
-```bash
-python -m venv venv
-```
-
-**Windows**
-```bash
-venv\Scripts\activate
-```
-
-**Linux / macOS**
-```bash
-source venv/bin/activate
-```
-
-### 3️⃣ Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4️⃣ Install Ghostscript
-Ghostscript handles PDF rebuilding.
-
-**Windows**  
-Download: [https://www.ghostscript.com/releases/gsdnld.html](https://www.ghostscript.com/releases/gsdnld.html)  
-Then verify:
-```bash
-gswin64c --version
-```
-
-**Linux**
-```bash
-sudo apt install ghostscript
-```
-
-**macOS (Homebrew)**
-```bash
-brew install ghostscript
-```
-
----
-
-## ▶️ Run the Application
-
-```bash
+### 2. Streamlit Web Application
+```powershell
 streamlit run streamlit_app.py
 ```
+Navigate to `http://localhost:8501`.
 
-Open your browser and navigate to:  
-👉 [http://localhost:8501](http://localhost:8501)
-
----
-
-## 🖥️ How to Use
-
-1. Upload a PDF file.  
-2. Select **compression level**:  
-   - 🟢 Low → Best quality  
-   - 🟡 Medium → Balanced (recommended)  
-   - 🔴 High → Smallest size (lossy)  
-3. Click **Compress PDF**.  
-4. Download and compare results.
+### 3. FastAPI Local Web Server (Vercel Mode)
+```powershell
+python -m uvicorn api.index:app --reload --port 8000
+```
+Navigate to `http://localhost:8000`.
 
 ---
 
-## 📊 Compression Levels
+## 🚀 Deployment Instructions
 
-| Level | Description |
-|--------|--------------|
-| Low | Minimal compression, visually lossless |
-| Medium | Balanced compression (recommended) |
-| High | Maximum compression, some image loss |
+### A. Deploying to Vercel
+1. Install Vercel CLI or connect your GitHub repository to Vercel.
+2. Run `vercel --prod` or click **Deploy** on Vercel.
+3. Vercel automatically detects `vercel.json`, builds serverless functions in `api/index.py`, and hosts the static web interface in `public/`.
 
-⚠️ *High compression mode may slightly reduce image quality.*
-
----
-
-## 🧪 Expected Results
-
-| PDF Type | Typical Reduction |
-|-----------|-------------------|
-| Text-heavy | 30–50% |
-| Image-heavy | 60–85% |
-| Scanned PDFs | 70–90% |
-
-> 📉 Actual results depend on input quality and image density.
+### B. Deploying via Docker
+```bash
+docker compose up --build
+```
+- FastAPI REST server runs at `http://localhost:8000`.
+- Streamlit Web App runs at `http://localhost:8501`.
 
 ---
 
-## 🛡️ Why Ghostscript?
+## 🧪 Running Automated Tests
 
-Low-level image compression often breaks PDFs (e.g., black images, lost transparency).  
-Ghostscript rebuilds the PDF safely, ensuring:
-- ✅ Color profile preservation  
-- ✅ Transparency accuracy  
-- ✅ Proper masking and rendering  
-- ✅ Reliable file integrity  
-
-> The same approach is used by many professional, paid PDF compressors.
+Run the complete test suite (11 unit tests):
+```powershell
+python -m unittest discover tests
+```
 
 ---
 
 ## 🧠 Resume-Ready Summary
 
-> Built an **offline, AI-assisted PDF compression system** using Python, Streamlit, and Ghostscript.  
-> Combined **rule-based heuristics** with a **RAG (Retrieval-Augmented Generation)** decision system to safely reduce PDF file sizes by up to **80%** — without image corruption or PDF failure.
+> Built an **enterprise-grade, offline-first PDF Compression & RAG Assistant Platform** in Python using PyMuPDF, Ghostscript, FAISS vector search, and FastAPI. Implemented a **hybrid decision engine** (Rules + Vector RAG), **Tesseract OCR**, **PSNR/SSIM visual quality verification**, and deployed serverless on **Vercel** with a glassmorphism web interface.
 
 ---
 
-## 🔮 Future Enhancements
+## 📜 License
 
-- 🗂️ Batch PDF compression  
-- 👁️ Before/after visual preview  
-- 🔤 OCR support for scanned PDFs  
-- 💻 CLI mode (pure terminal)  
-- 🐳 Dockerized deployment  
-
----
-
-⭐ **If you find this project useful, please consider giving it a star!**
-
----
-
-💬 *Maintained by [Sai mukesh](https://github.com/Saimukesh246)*  
-📧 *For suggestions and contributions, feel free to open a pull request or issue.*
+Distributed under the [MIT License](LICENSE).
