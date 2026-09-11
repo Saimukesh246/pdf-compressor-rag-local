@@ -3,7 +3,6 @@ pillow
 sentence-transformers
 faiss-cpu
 scikit-learn
-streamlit
 fastapi
 uvicorn
 python-multipart

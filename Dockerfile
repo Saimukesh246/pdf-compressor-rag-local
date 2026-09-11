@@ -1,4 +1,4 @@
-# Multi-stage Docker build for PDF Compressor & RAG Engine
+# Multi-stage Docker build for PDF Compressor & RAG Engine (FastAPI Backend + HTML5 Frontend)
 FROM python:3.10-slim-bookworm
 
 # Install system dependencies: Ghostscript, Tesseract OCR, and build packages
@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source files
 COPY . .
 
-# Expose ports: Streamlit (8501) & FastAPI (8000)
-EXPOSE 8501 8000
+# Expose port: FastAPI Web Application (8000)
+EXPOSE 8000
 
-# Default command: Start FastAPI serverless/REST server
+# Default command: Start FastAPI server
 CMD ["python", "-m", "uvicorn", "api.index:app", "--host", "0.0.0.0", "--port", "8000"]
