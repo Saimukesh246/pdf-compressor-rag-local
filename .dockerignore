@@ -1,0 +1,9 @@
+.venv
+venv
+__pycache__
+*.pyc
+.git
+.gitignore
+compressed_output.pdf
+*.tmp.pdf
+node_modules

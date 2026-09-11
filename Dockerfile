@@ -1,5 +1,5 @@
 # Multi-stage Docker build for PDF Compressor & RAG Engine
-FROM python:3.10-slim-bullseye
+FROM python:3.10-slim-bookworm
 
 # Install system dependencies: Ghostscript, Tesseract OCR, and build packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
