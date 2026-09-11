@@ -138,6 +138,58 @@ async def compress_pdf_endpoint(
             "preview_compressed_b64": comp_b64
         })
 
+@app.post("/api/batch")
+async def batch_compress_endpoint(
+    files: list[UploadFile] = File(...),
+    level: str = Form("medium")
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided for batch compression.")
+
+    results = []
+    zip_buffer = io.BytesIO()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for idx, file in enumerate(files):
+                in_path = os.path.join(tmpdir, f"in_{idx}.pdf")
+                out_path = os.path.join(tmpdir, f"out_{idx}.pdf")
+
+                contents = await file.read()
+                with open(in_path, "wb") as f:
+                    f.write(contents)
+
+                gs_path = find_ghostscript()
+                if gs_path:
+                    stats = compress_pdf(in_path, out_path, level=level)
+                else:
+                    safe_optimize_pdf(in_path, out_path)
+                    orig_kb = len(contents) / 1024.0
+                    comp_kb = os.path.getsize(out_path) / 1024.0
+                    reduction = ((orig_kb - comp_kb) / orig_kb * 100.0) if orig_kb > 0 else 0.0
+                    stats = {
+                        "original_size_kb": orig_kb,
+                        "compressed_size_kb": comp_kb,
+                        "reduction_percent": reduction,
+                        "psnr_db": 0.0,
+                        "ssim_percent": 100.0
+                    }
+
+                zip_file.write(out_path, arcname=f"compressed_{file.filename}")
+                results.append({
+                    "filename": file.filename,
+                    "stats": stats
+                })
+
+    zip_buffer.seek(0)
+    zip_b64 = base64.b64encode(zip_buffer.getvalue()).decode("utf-8")
+
+    return JSONResponse(content={
+        "processed_count": len(results),
+        "results": results,
+        "zip_b64": zip_b64
+    })
+
 @app.post("/api/ask")
 async def ask_pdf_endpoint(
     file: UploadFile = File(...),

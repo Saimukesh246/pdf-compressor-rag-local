@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Compressor & RAG Assistant — Offline AI Engine</title>
-  <meta name="description" content="Hybrid Rules + RAG PDF Compression Engine and Semantic PDF Assistant built with Python, PyMuPDF, FAISS, and Ghostscript.">
+  <title>PDF Compressor & AI RAG Assistant — Enterprise SaaS</title>
+  <meta name="description" content="Offline-first PDF Compression, FAISS Semantic RAG Assistant, Document Merger, Splitter & Executive Mindmaps.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -12,76 +12,132 @@
 </head>
 <body>
   <div class="app-background"></div>
+  <div id="toastContainer" class="toast-container"></div>
 
   <div class="container">
+    <!-- Header Studio Banner -->
     <header class="app-header">
       <div class="logo-area">
-        <span class="icon">📄</span>
+        <div class="logo-icon-wrapper">
+          <span class="icon">⚡</span>
+        </div>
         <div>
-          <h1>PDF Compressor <span class="badge">Hybrid RAG</span></h1>
-          <p class="subtitle">Rules → Vector RAG → Safe Compression, Merge/Split & Mindmaps</p>
+          <h1>PDF Compressor <span class="badge">Enterprise AI</span></h1>
+          <p class="subtitle">Rules Engine → FAISS Vector RAG → Safe Rebuild & Quality Metrics</p>
         </div>
       </div>
       <div id="healthStatus" class="health-status">
-        <span class="dot pulse"></span> <span id="healthText">Checking Engine Status...</span>
+        <span class="dot pulse"></span> <span id="healthText">Connecting to FastAPI Engine...</span>
       </div>
     </header>
 
+    <!-- Navigation Bar -->
     <nav class="nav-tabs">
-      <button id="tabCompress" class="tab-btn active" onclick="switchTab('compress')">📄 Single PDF Compressor</button>
-      <button id="tabBatch" class="tab-btn" onclick="switchTab('batch')">📁 Batch Compression</button>
-      <button id="tabAsk" class="tab-btn" onclick="switchTab('ask')">💬 Ask PDF (RAG Chat)</button>
-      <button id="tabManip" class="tab-btn" onclick="switchTab('manip')">🔀 Merge & Split</button>
-      <button id="tabAbout" class="tab-btn" onclick="switchTab('about')">ℹ️ Architecture</button>
+      <button id="tabCompress" class="tab-btn active" onclick="switchTab('compress')">
+        <span class="btn-icon">⚡</span> Single PDF Studio
+      </button>
+      <button id="tabBatch" class="tab-btn" onclick="switchTab('batch')">
+        <span class="btn-icon">📦</span> Batch Compressor
+      </button>
+      <button id="tabAsk" class="tab-btn" onclick="switchTab('ask')">
+        <span class="btn-icon">🧠</span> Ask AI & Mindmaps
+      </button>
+      <button id="tabManip" class="tab-btn" onclick="switchTab('manip')">
+        <span class="btn-icon">🔀</span> Merge & Split Tools
+      </button>
+      <button id="tabAbout" class="tab-btn" onclick="switchTab('about')">
+        <span class="btn-icon">ℹ️</span> System Architecture
+      </button>
     </nav>
 
-    <!-- TAB 1: Single PDF Compression -->
+    <!-- TAB 1: Single PDF Studio -->
     <section id="secCompress" class="tab-content active">
       <div class="grid-2">
+        <!-- Configuration Card -->
         <div class="card glass">
-          <h2>⚙️ Compression Profile</h2>
-          <div class="form-group">
-            <label for="levelSelect">Compression Level</label>
-            <select id="levelSelect" class="form-control">
-              <option value="medium" selected>Medium (Recommended - eBook Balanced)</option>
-              <option value="low">Low (Best Quality - Lossless Print)</option>
-              <option value="high">High (Smallest Size - Screen Resolution)</option>
-            </select>
+          <div class="card-header">
+            <h2>⚙️ Compression Profile</h2>
+            <span class="pill-tag">Fast API Powered</span>
           </div>
 
-          <div class="form-group">
-            <label for="inputPassword">PDF Password (if encrypted)</label>
-            <input type="password" id="inputPassword" class="form-control" placeholder="Optional password">
-          </div>
-
-          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" id="chkStripMeta" style="width: auto;">
-              <label for="chkStripMeta" style="margin: 0; cursor: pointer;">Purge PDF Metadata & Annotations</label>
+          <label class="section-label">Select Quality Profile</label>
+          <div class="profile-cards">
+            <div class="profile-card active" id="profMedium" onclick="selectProfile('medium')">
+              <div class="profile-icon">🎯</div>
+              <div class="profile-title">Balanced</div>
+              <div class="profile-desc">Recommended for ebooks & reports</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" id="chkGrayscale" style="width: auto;">
-              <label for="chkGrayscale" style="margin: 0; cursor: pointer;">Monochrome / Grayscale Mode (Extra Scan Savings)</label>
+            <div class="profile-card" id="profLow" onclick="selectProfile('low')">
+              <div class="profile-icon">🎨</div>
+              <div class="profile-title">High Quality</div>
+              <div class="profile-desc">Near lossless print quality</div>
+            </div>
+            <div class="profile-card" id="profHigh" onclick="selectProfile('high')">
+              <div class="profile-icon">⚡</div>
+              <div class="profile-title">Smallest Size</div>
+              <div class="profile-desc">Aggressive screen compression</div>
             </div>
           </div>
+          <select id="levelSelect" class="form-control hidden">
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="high">High</option>
+          </select>
 
+          <div class="options-group">
+            <div class="form-group">
+              <label for="inputPassword">PDF Encryption Password</label>
+              <input type="password" id="inputPassword" class="form-control" placeholder="Optional password for protected PDFs">
+            </div>
+
+            <div class="checkbox-list">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="chkStripMeta">
+                <span class="checkmark"></span>
+                <span>Purge PDF Metadata & Annotations</span>
+              </label>
+              <label class="custom-checkbox">
+                <input type="checkbox" id="chkGrayscale">
+                <span class="checkmark"></span>
+                <span>Monochrome / Grayscale Mode (Extra Scan Savings)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Upload Drop Zone -->
           <div class="drop-zone" id="dropZoneSingle">
-            <span class="upload-icon">📤</span>
-            <p><strong>Drag & Drop PDF here</strong></p>
-            <p class="subtext">or click to browse files</p>
+            <div class="drop-zone-content">
+              <span class="upload-icon">📤</span>
+              <p class="primary-text"><strong>Drag & Drop PDF file here</strong></p>
+              <p class="subtext">Supports documents up to 200MB</p>
+            </div>
             <input type="file" id="fileSingle" accept=".pdf" class="file-input">
-            <div id="fileNameSingle" class="file-name"></div>
+            <div id="fileSelectedCard" class="file-selected-card hidden">
+              <span class="file-icon">📄</span>
+              <div class="file-details">
+                <div id="fileNameSingle" class="file-name">filename.pdf</div>
+                <div id="fileSizeSingle" class="file-size">0 KB</div>
+              </div>
+              <button class="btn-clear" onclick="clearSingleFile(event)">✕</button>
+            </div>
           </div>
 
           <button id="btnCompress" class="btn btn-primary" onclick="runSingleCompression()" disabled>
-            🚀 Compress PDF
+            🚀 Compress PDF Document
           </button>
         </div>
 
+        <!-- Strategy & Analysis Results Card -->
         <div class="card glass" id="analysisCard">
-          <h2>📊 Strategy & Document Analysis</h2>
-          <div id="analysisPlaceholder" class="placeholder-text">
-            Upload a PDF document to analyze its structure and view AI decision strategy.
+          <div class="card-header">
+            <h2>📊 Strategy & Analytics</h2>
+            <span id="decModeBadge" class="mode-badge hidden">AI RAG</span>
+          </div>
+
+          <div id="analysisPlaceholder" class="placeholder-container">
+            <div class="placeholder-icon">📈</div>
+            <p class="placeholder-title">No Document Selected</p>
+            <p class="placeholder-text">Upload a PDF above to view real-time document structure inspection and AI strategy selection.</p>
           </div>
 
           <div id="analysisResults" class="hidden">
@@ -95,33 +151,37 @@
                 <span id="metPageCount" class="value">0</span>
               </div>
               <div class="metric-card">
-                <span class="label">Images</span>
+                <span class="label">Embedded Images</span>
                 <span id="metImageCount" class="value">0</span>
               </div>
               <div class="metric-card">
-                <span class="label">Text Chars</span>
+                <span class="label">Text Density</span>
                 <span id="metTextLength" class="value">0</span>
               </div>
             </div>
 
             <div id="decisionBanner" class="decision-banner">
-              <span id="decModeBadge" class="mode-badge">RAG</span>
+              <span class="banner-icon">🧠</span>
               <div>
                 <strong>Recommended Strategy:</strong>
                 <p id="decStrategyText">Strategy description will appear here...</p>
               </div>
             </div>
 
+            <!-- Compression Success View -->
             <div id="compResultsArea" class="comp-results hidden">
-              <hr class="divider">
-              <h3>🎉 Compression Complete</h3>
+              <div class="hero-reduction-banner">
+                <span class="reduction-label">Size Reduction</span>
+                <span id="heroReductionValue" class="reduction-value">-0.0%</span>
+              </div>
+
               <div class="metrics-grid">
                 <div class="metric-card highlight">
                   <span class="label">Compressed Size</span>
                   <span id="metCompSize" class="value">0 KB</span>
                 </div>
                 <div class="metric-card success">
-                  <span class="label">Size Reduction</span>
+                  <span class="label">Savings Ratio</span>
                   <span id="metReduction" class="value">0%</span>
                 </div>
                 <div class="metric-card">
@@ -142,30 +202,38 @@
         </div>
       </div>
 
+      <!-- Before / After Page Preview Card -->
       <div id="previewCard" class="card glass hidden" style="margin-top: 1.5rem;">
-        <h2>👁️ Visual Before vs. After Page Preview (Page 1)</h2>
+        <div class="card-header">
+          <h2>👁️ Page 1 Visual Quality Retention (Before vs. After)</h2>
+          <span class="pill-tag">Rendered at 150 DPI</span>
+        </div>
         <div class="grid-2 preview-grid">
           <div class="preview-box">
-            <h4>📷 Original Document</h4>
+            <h4>📷 Original Document (Page 1)</h4>
             <img id="imgPreviewOrig" alt="Original Page Preview" src="" class="preview-img">
           </div>
           <div class="preview-box">
-            <h4>✨ Compressed Document</h4>
+            <h4>✨ Compressed Document (Page 1)</h4>
             <img id="imgPreviewComp" alt="Compressed Page Preview" src="" class="preview-img">
           </div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 2: Batch Compression -->
+    <!-- TAB 2: Batch Compressor -->
     <section id="secBatch" class="tab-content">
       <div class="card glass">
-        <h2>📁 Batch PDF Compression</h2>
-        <p class="subtitle">Upload multiple PDF files to compress in batch and export a combined ZIP archive.</p>
+        <div class="card-header">
+          <h2>📁 Batch PDF Compression Studio</h2>
+          <span class="pill-tag">Export Single ZIP</span>
+        </div>
+        <p class="subtitle">Select multiple PDF files to process in parallel and export a single zip archive.</p>
         
         <div class="drop-zone" id="dropZoneBatch">
           <span class="upload-icon">📦</span>
-          <p><strong>Drag & Drop multiple PDFs</strong></p>
+          <p class="primary-text"><strong>Drag & Drop multiple PDFs</strong></p>
+          <p class="subtext">Select 2 or more files</p>
           <input type="file" id="fileBatch" accept=".pdf" multiple class="file-input">
           <div id="batchCount" class="file-name"></div>
         </div>
@@ -175,13 +243,13 @@
         </button>
 
         <div id="batchResults" class="hidden" style="margin-top: 1.5rem;">
-          <h3>Batch Results</h3>
+          <h3>Batch Results Overview</h3>
           <table class="batch-table" id="batchTable">
             <thead>
               <tr>
                 <th>Filename</th>
-                <th>Original</th>
-                <th>Compressed</th>
+                <th>Original Size</th>
+                <th>Compressed Size</th>
                 <th>Reduction</th>
               </tr>
             </thead>
@@ -189,36 +257,40 @@
           </table>
           
           <a id="btnBatchDownload" href="#" download="compressed_pdfs.zip" class="btn btn-success" style="margin-top: 1rem;">
-            ⬇️ Download All (.zip)
+            ⬇️ Download All Compressed PDFs (.zip)
           </a>
         </div>
       </div>
     </section>
 
-    <!-- TAB 3: Ask PDF & Mindmaps -->
+    <!-- TAB 3: Ask AI & Mindmaps -->
     <section id="secAsk" class="tab-content">
       <div class="card glass">
-        <h2>💬 Ask PDF & Executive Mindmap Generator</h2>
-        <p class="subtitle">Upload a PDF document to query, synthesize RAG answers, or generate an executive summary and mindmap.</p>
+        <div class="card-header">
+          <h2>🧠 Ask PDF & Executive Mindmap Studio</h2>
+          <span class="pill-tag">FAISS RAG Engine</span>
+        </div>
+        <p class="subtitle">Query PDF contents using natural language RAG vector search or generate executive summary mindmaps.</p>
         
         <div class="grid-2">
           <div class="drop-zone" id="dropZoneAsk">
             <span class="upload-icon">🔍</span>
-            <p><strong>Upload PDF for Q&A or Mindmap</strong></p>
+            <p class="primary-text"><strong>Upload Target PDF</strong></p>
+            <p class="subtext">For Q&A or Mindmap synthesis</p>
             <input type="file" id="fileAsk" accept=".pdf" class="file-input">
             <div id="fileNameAsk" class="file-name"></div>
           </div>
 
           <div class="query-area">
             <div class="form-group">
-              <label for="inputQuery">Enter Question or Search Prompt</label>
-              <input type="text" id="inputQuery" class="form-control" placeholder="e.g. What is the main conclusion of this report?">
+              <label for="inputQuery">Enter Question or Research Prompt</label>
+              <input type="text" id="inputQuery" class="form-control" placeholder="e.g., What are the key recommendations in this document?">
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="button-row">
               <button id="btnAsk" class="btn btn-primary" onclick="runAskQuery()" disabled>
                 🔍 Search Q&A
               </button>
-              <button id="btnMindmap" class="btn btn-primary" style="background: linear-gradient(135deg, var(--secondary), #0891b2);" onclick="runMindmapGen()" disabled>
+              <button id="btnMindmap" class="btn btn-secondary" onclick="runMindmapGen()" disabled>
                 🧠 Generate Mindmap
               </button>
             </div>
@@ -226,17 +298,20 @@
         </div>
 
         <div id="askResultsArea" class="ask-results hidden" style="margin-top: 1.5rem;">
-          <div class="card" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); margin-bottom: 1.5rem;">
-            <h3>🧠 Synthesized RAG Answer / Overview</h3>
-            <p id="askSynthesizedAnswer" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; margin-top: 0.5rem;"></p>
+          <div class="card response-box">
+            <h3>🧠 Synthesized RAG Answer / Executive Summary</h3>
+            <p id="askSynthesizedAnswer" class="response-text"></p>
           </div>
 
-          <div id="mindmapBox" class="card hidden" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); margin-bottom: 1.5rem;">
-            <h3>🗺️ Executive Mindmap (Mermaid Code)</h3>
-            <pre id="mermaidCodeText" style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 6px; color: var(--secondary); font-size: 0.85rem; overflow-x: auto;"></pre>
+          <div id="mindmapBox" class="card code-box hidden">
+            <div class="code-box-header">
+              <h3>🗺️ Mermaid Executive Mindmap Code</h3>
+              <button class="btn-copy" onclick="copyMermaidCode()">📋 Copy Code</button>
+            </div>
+            <pre id="mermaidCodeText"></pre>
           </div>
 
-          <h3>🔍 Evidence Passages</h3>
+          <h3>🔍 Evidence Passages (Top Vector Matches)</h3>
           <div id="askMatchesContainer"></div>
         </div>
       </div>
@@ -246,16 +321,19 @@
     <section id="secManip" class="tab-content">
       <div class="grid-2">
         <div class="card glass">
-          <h2>🔀 Merge Multiple PDFs</h2>
-          <p class="subtitle">Combine 2 or more PDF documents into a single file.</p>
+          <div class="card-header">
+            <h2>🔀 Merge Multiple PDFs</h2>
+            <span class="pill-tag">PyMuPDF Engine</span>
+          </div>
+          <p class="subtitle">Combine multiple PDF documents into a single file.</p>
           <div class="drop-zone" id="dropZoneMerge">
             <span class="upload-icon">🔗</span>
-            <p><strong>Select PDFs to Merge</strong></p>
+            <p class="primary-text"><strong>Select PDFs to Merge</strong></p>
             <input type="file" id="fileMerge" accept=".pdf" multiple class="file-input">
             <div id="fileNameMerge" class="file-name"></div>
           </div>
           <button id="btnMerge" class="btn btn-primary" onclick="runMergePDFs()" disabled>
-            🔗 Merge PDFs
+            🔗 Merge PDFs Now
           </button>
           <div id="mergeResults" class="hidden" style="margin-top: 1rem;">
             <a id="btnDownloadMerge" href="#" download="merged.pdf" class="btn btn-success">
@@ -265,11 +343,14 @@
         </div>
 
         <div class="card glass">
-          <h2>✂️ Split PDF Pages</h2>
+          <div class="card-header">
+            <h2>✂️ Split PDF Pages</h2>
+            <span class="pill-tag">Range Extraction</span>
+          </div>
           <p class="subtitle">Extract specific page ranges (e.g. 1-3, 5) into a new PDF.</p>
           <div class="drop-zone" id="dropZoneSplit">
             <span class="upload-icon">✂️</span>
-            <p><strong>Select PDF to Split</strong></p>
+            <p class="primary-text"><strong>Select PDF to Split</strong></p>
             <input type="file" id="fileSplit" accept=".pdf" class="file-input">
             <div id="fileNameSplit" class="file-name"></div>
           </div>
@@ -278,11 +359,11 @@
             <input type="text" id="inputRange" class="form-control" value="1-1">
           </div>
           <button id="btnSplit" class="btn btn-primary" onclick="runSplitPDF()" disabled>
-            ✂️ Split PDF Pages
+            ✂️ Extract PDF Pages
           </button>
           <div id="splitResults" class="hidden" style="margin-top: 1rem;">
             <a id="btnDownloadSplit" href="#" download="split.pdf" class="btn btn-success">
-              ⬇️ Download Split PDF
+              ⬇️ Download Extracted PDF
             </a>
           </div>
         </div>
@@ -292,24 +373,50 @@
     <!-- TAB 5: Architecture -->
     <section id="secAbout" class="tab-content">
       <div class="card glass">
-        <h2>ℹ️ System Architecture & RAG Details</h2>
+        <div class="card-header">
+          <h2>ℹ️ System Architecture & Engine Pipeline</h2>
+          <span class="pill-tag">Offline-First AI</span>
+        </div>
         <div class="arch-content">
-          <p>This application is powered by an enterprise-grade <strong>Hybrid RAG System</strong>:</p>
-          <ul>
-            <li><strong>PyMuPDF & Tesseract OCR Inspection</strong>: Analyzes font tables, image resolutions, object counts, text density, and runs Tesseract OCR fallback for scanned pages.</li>
-            <li><strong>Deterministic Rule Engine</strong>: Fast-path matching for clear document cases.</li>
-            <li><strong>FAISS Vector RAG Engine</strong>: Vector semantic search against a knowledge base of compression strategies for ambiguous documents.</li>
-            <li><strong>LLM Synthesizer & Mindmap Generator</strong>: Page-level windowed chunking, FAISS vector indexing, and Mermaid mindmap generation.</li>
-            <li><strong>Visual Quality Engine</strong>: Computes PSNR (dB) and SSIM (%) quality retention scores.</li>
-            <li><strong>Offline Manipulator Tools</strong>: PyMuPDF page range splitting and multi-document merging.</li>
-            <li><strong>Safe Rebuild Pipeline</strong>: PyMuPDF stream deflating paired with Ghostscript binary downsampling.</li>
-          </ul>
+          <p>This platform executes a 6-stage hybrid compression & semantic pipeline:</p>
+          <div class="pipeline-grid">
+            <div class="pipeline-step">
+              <span class="step-num">01</span>
+              <h4>PyMuPDF & OCR Inspector</h4>
+              <p>Extracts font density, stream object counts, and executes Tesseract OCR fallback for scanned documents.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">02</span>
+              <h4>Deterministic Rule Engine</h4>
+              <p>Evaluates fast-path heuristics for clear text-heavy or scanned document categories.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">03</span>
+              <h4>FAISS Vector Strategy Decider</h4>
+              <p>Executes semantic similarity search against knowledge base vectors for ambiguous documents.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">04</span>
+              <h4>Ghostscript Safe Rebuild</h4>
+              <p>Deflates streams (`garbage=4`) and downsamples images without losing transparency or vector crispness.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">05</span>
+              <h4>PSNR & SSIM Quality Engine</h4>
+              <p>Renders Page 1 bitmap comparisons to measure Peak Signal-to-Noise Ratio and Structural Similarity.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">06</span>
+              <h4>LLM RAG & Mindmap Engine</h4>
+              <p>Page-level windowed chunking with FAISS indexing for Q&A and executive Mermaid mindmap generation.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
     <footer class="app-footer">
-      <p>PDF Compressor & RAG Engine &copy; 2026 | Built with Python, PyMuPDF, FAISS, FastAPI & Vercel</p>
+      <p>PDF Compressor & AI RAG Engine &copy; 2026 | Built with Python, PyMuPDF, FAISS & FastAPI</p>
     </footer>
   </div>
 

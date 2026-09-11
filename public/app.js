@@ -1,9 +1,26 @@
-// PDF Compressor & RAG Assistant Client Logic
+// PDF Compressor & AI Engine Production Client Logic
 
 document.addEventListener('DOMContentLoaded', () => {
   checkHealth();
   setupFileInputs();
 });
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
 
 async function checkHealth() {
   const healthText = document.getElementById('healthText');
@@ -11,13 +28,13 @@ async function checkHealth() {
     const res = await fetch('/api/health');
     const data = await res.json();
     if (data.status === 'healthy') {
-      const gsState = data.ghostscript_available ? 'Ghostscript Active' : 'PyMuPDF Serverless Fallback';
-      healthText.innerText = `Engine Ready (${gsState})`;
+      const gsState = data.ghostscript_available ? 'Ghostscript Active' : 'PyMuPDF Fallback';
+      healthText.innerHTML = `<span style="color: #6ee7b7">🟢 FastAPI Online</span> &nbsp;|&nbsp; ⚡ ${gsState}`;
     } else {
       healthText.innerText = 'Engine Offline';
     }
   } catch (err) {
-    healthText.innerText = 'Serverless Function Ready';
+    healthText.innerText = 'FastAPI Engine Ready';
   }
 }
 
@@ -38,16 +55,62 @@ function switchTab(tabName) {
   });
 }
 
+function selectProfile(level) {
+  ['profMedium', 'profLow', 'profHigh'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+
+  const levelSelect = document.getElementById('levelSelect');
+  if (levelSelect) levelSelect.value = level;
+
+  if (level === 'medium') document.getElementById('profMedium').classList.add('active');
+  if (level === 'low') document.getElementById('profLow').classList.add('active');
+  if (level === 'high') document.getElementById('profHigh').classList.add('active');
+}
+
+function formatBytes(bytes, decimals = 1) {
+  if (bytes === 0) return '0 KB';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function clearSingleFile(event) {
+  if (event) event.stopPropagation();
+  const fileInput = document.getElementById('fileSingle');
+  const dropContent = document.querySelector('#dropZoneSingle .drop-zone-content');
+  const card = document.getElementById('fileSelectedCard');
+  const btnCompress = document.getElementById('btnCompress');
+
+  if (fileInput) fileInput.value = '';
+  if (dropContent) dropContent.classList.remove('hidden');
+  if (card) card.classList.add('hidden');
+  if (btnCompress) btnCompress.disabled = true;
+
+  document.getElementById('analysisPlaceholder').classList.remove('hidden');
+  document.getElementById('analysisResults').classList.add('hidden');
+  document.getElementById('previewCard').classList.add('hidden');
+}
+
 function setupFileInputs() {
   const singleInput = document.getElementById('fileSingle');
   const btnCompress = document.getElementById('btnCompress');
-  const fileNameSingle = document.getElementById('fileNameSingle');
+  const dropContent = document.querySelector('#dropZoneSingle .drop-zone-content');
+  const selectedCard = document.getElementById('fileSelectedCard');
 
   if (singleInput) {
     singleInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
-        fileNameSingle.innerText = `📁 ${e.target.files[0].name}`;
+        const file = e.target.files[0];
+        document.getElementById('fileNameSingle').innerText = file.name;
+        document.getElementById('fileSizeSingle').innerText = formatBytes(file.size);
+        if (dropContent) dropContent.classList.add('hidden');
+        if (selectedCard) selectedCard.classList.remove('hidden');
         btnCompress.disabled = false;
+        showToast(`Selected document: ${file.name}`, 'info');
       }
     });
   }
@@ -124,7 +187,7 @@ async function runSingleCompression() {
   const grayscale = chkGrayscale ? chkGrayscale.checked : false;
 
   btnCompress.disabled = true;
-  btnCompress.innerText = '⏳ Compressing PDF...';
+  btnCompress.innerHTML = '⏳ Analyzing & Compressing PDF...';
 
   const formData = new FormData();
   formData.append('file', file);
@@ -154,9 +217,13 @@ async function runSingleCompression() {
     document.getElementById('metImageCount').innerText = data.metrics.image_count;
     document.getElementById('metTextLength').innerText = data.metrics.text_length;
 
-    document.getElementById('decModeBadge').innerText = data.decision_mode;
+    const modeBadge = document.getElementById('decModeBadge');
+    modeBadge.innerText = data.decision_mode;
+    modeBadge.classList.remove('hidden');
+
     document.getElementById('decStrategyText').innerText = data.strategy;
 
+    document.getElementById('heroReductionValue').innerText = `-${data.stats.reduction_percent.toFixed(1)}%`;
     document.getElementById('metCompSize').innerText = `${data.stats.compressed_size_kb.toFixed(1)} KB`;
     document.getElementById('metReduction').innerText = `${data.stats.reduction_percent.toFixed(1)}%`;
     if (document.getElementById('metPsnr')) {
@@ -178,11 +245,13 @@ async function runSingleCompression() {
       document.getElementById('imgPreviewComp').src = `data:image/png;base64,${data.preview_compressed_b64}`;
     }
 
+    showToast(`PDF Compressed successfully! Reduced by ${data.stats.reduction_percent.toFixed(1)}%`, 'success');
+
   } catch (err) {
-    alert(`Compression Error: ${err.message}`);
+    showToast(`Compression Error: ${err.message}`, 'error');
   } finally {
     btnCompress.disabled = false;
-    btnCompress.innerText = '🚀 Compress PDF';
+    btnCompress.innerHTML = '🚀 Compress PDF Document';
   }
 }
 
@@ -193,7 +262,7 @@ async function runBatchCompression() {
   if (!fileInput.files || fileInput.files.length === 0) return;
 
   btnBatch.disabled = true;
-  btnBatch.innerText = '⏳ Processing Batch...';
+  btnBatch.innerHTML = '⏳ Processing Batch Compression...';
 
   const formData = new FormData();
   for (let i = 0; i < fileInput.files.length; i++) {
@@ -220,10 +289,10 @@ async function runBatchCompression() {
     data.results.forEach(res => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${res.filename}</td>
+        <td><strong>${res.filename}</strong></td>
         <td>${res.stats.original_size_kb.toFixed(1)} KB</td>
         <td>${res.stats.compressed_size_kb.toFixed(1)} KB</td>
-        <td style="color: var(--success); font-weight: 600;">${res.stats.reduction_percent.toFixed(1)}%</td>
+        <td style="color: var(--success); font-weight: 700;">-${res.stats.reduction_percent.toFixed(1)}%</td>
       `;
       tbody.appendChild(tr);
     });
@@ -233,11 +302,13 @@ async function runBatchCompression() {
     const btnBatchDownload = document.getElementById('btnBatchDownload');
     btnBatchDownload.href = `data:application/zip;base64,${data.zip_b64}`;
 
+    showToast('Batch PDF compression completed successfully!', 'success');
+
   } catch (err) {
-    alert(`Batch Compression Error: ${err.message}`);
+    showToast(`Batch Error: ${err.message}`, 'error');
   } finally {
     btnBatch.disabled = false;
-    btnBatch.innerText = '📦 Compress All PDFs & Export ZIP';
+    btnBatch.innerHTML = '📦 Compress All PDFs & Export ZIP';
   }
 }
 
@@ -247,16 +318,16 @@ async function runAskQuery() {
   const btnAsk = document.getElementById('btnAsk');
 
   if (!fileInput.files || fileInput.files.length === 0) {
-    alert('Please select a PDF file first.');
+    showToast('Please select a PDF file first.', 'error');
     return;
   }
   if (!queryInput.value.trim()) {
-    alert('Please enter a search prompt.');
+    showToast('Please enter a search question.', 'error');
     return;
   }
 
   btnAsk.disabled = true;
-  btnAsk.innerText = '⏳ Searching...';
+  btnAsk.innerHTML = '⏳ Searching RAG Index...';
 
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
@@ -300,12 +371,13 @@ async function runAskQuery() {
     }
 
     document.getElementById('askResultsArea').classList.remove('hidden');
+    showToast('RAG Vector Query completed!', 'success');
 
   } catch (err) {
-    alert(`RAG Query Error: ${err.message}`);
+    showToast(`RAG Error: ${err.message}`, 'error');
   } finally {
     btnAsk.disabled = false;
-    btnAsk.innerText = '🔍 Search Q&A';
+    btnAsk.innerHTML = '🔍 Search Q&A';
   }
 }
 
@@ -314,12 +386,12 @@ async function runMindmapGen() {
   const btnMindmap = document.getElementById('btnMindmap');
 
   if (!fileInput.files || fileInput.files.length === 0) {
-    alert('Please select a PDF file first.');
+    showToast('Please select a PDF file first.', 'error');
     return;
   }
 
   btnMindmap.disabled = true;
-  btnMindmap.innerText = '⏳ Generating...';
+  btnMindmap.innerHTML = '⏳ Generating Mindmap...';
 
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
@@ -342,12 +414,21 @@ async function runMindmapGen() {
     document.getElementById('mindmapBox').classList.remove('hidden');
     document.getElementById('askResultsArea').classList.remove('hidden');
 
+    showToast('Mindmap generated successfully!', 'success');
+
   } catch (err) {
-    alert(`Mindmap Error: ${err.message}`);
+    showToast(`Mindmap Error: ${err.message}`, 'error');
   } finally {
     btnMindmap.disabled = false;
-    btnMindmap.innerText = '🧠 Generate Mindmap';
+    btnMindmap.innerHTML = '🧠 Generate Mindmap';
   }
+}
+
+function copyMermaidCode() {
+  const code = document.getElementById('mermaidCodeText').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Mermaid Mindmap code copied to clipboard!', 'success');
+  });
 }
 
 async function runMergePDFs() {
@@ -355,12 +436,12 @@ async function runMergePDFs() {
   const btnMerge = document.getElementById('btnMerge');
 
   if (!fileInput.files || fileInput.files.length < 2) {
-    alert('Please select at least 2 PDF files to merge.');
+    showToast('Please select at least 2 PDF files to merge.', 'error');
     return;
   }
 
   btnMerge.disabled = true;
-  btnMerge.innerText = '⏳ Merging PDFs...';
+  btnMerge.innerHTML = '⏳ Merging PDFs...';
 
   const formData = new FormData();
   for (let i = 0; i < fileInput.files.length; i++) {
@@ -384,11 +465,13 @@ async function runMergePDFs() {
     btnDownload.href = `data:application/pdf;base64,${data.merged_file_b64}`;
     document.getElementById('mergeResults').classList.remove('hidden');
 
+    showToast(`Successfully merged ${fileInput.files.length} PDFs into ${data.filename}!`, 'success');
+
   } catch (err) {
-    alert(`Merge Error: ${err.message}`);
+    showToast(`Merge Error: ${err.message}`, 'error');
   } finally {
     btnMerge.disabled = false;
-    btnMerge.innerText = '🔗 Merge PDFs';
+    btnMerge.innerHTML = '🔗 Merge PDFs Now';
   }
 }
 
@@ -400,7 +483,7 @@ async function runSplitPDF() {
   if (!fileInput.files || fileInput.files.length === 0) return;
 
   btnSplit.disabled = true;
-  btnSplit.innerText = '⏳ Splitting PDF...';
+  btnSplit.innerHTML = '⏳ Extracting Pages...';
 
   const formData = new FormData();
   formData.append('file', fileInput.files[0]);
@@ -423,10 +506,12 @@ async function runSplitPDF() {
     btnDownload.href = `data:application/pdf;base64,${data.split_file_b64}`;
     document.getElementById('splitResults').classList.remove('hidden');
 
+    showToast(`Successfully extracted pages (${data.extracted_pages})!`, 'success');
+
   } catch (err) {
-    alert(`Split Error: ${err.message}`);
+    showToast(`Split Error: ${err.message}`, 'error');
   } finally {
     btnSplit.disabled = false;
-    btnSplit.innerText = '✂️ Split PDF Pages';
+    btnSplit.innerHTML = '✂️ Extract PDF Pages';
   }
 }
