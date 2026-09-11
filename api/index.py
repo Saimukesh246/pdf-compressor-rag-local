@@ -25,6 +25,11 @@ from compressor.pdf_optimizer import (
     render_page_preview
 )
 from compressor.pdf_manipulator import merge_pdfs, split_pdf
+from compressor.pdf_watermark import add_watermark_to_pdf
+from compressor.pdf_security import encrypt_pdf, decrypt_pdf
+from compressor.pdf_converter import pdf_to_images_zip, images_to_pdf
+from analyzer.pii_redactor import redact_pii_from_pdf
+from rag.pdf_exporter import export_pdf_to_markdown
 
 app = FastAPI(
     title="PDF Compressor & RAG Assistant API",
@@ -287,6 +292,204 @@ async def split_pdf_endpoint(
             "extracted_pages": res["extracted_pages"],
             "file_size_kb": res["file_size_kb"],
             "split_file_b64": base64.b64encode(split_bytes).decode("utf-8")
+        })
+
+@app.post("/api/watermark")
+async def watermark_endpoint(
+    file: UploadFile = File(...),
+    text: str = Form("CONFIDENTIAL"),
+    opacity: float = Form(0.3),
+    fontsize: int = Form(40),
+    password: Optional[str] = Form(None)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        output_path = os.path.join(tmpdir, "watermarked.pdf")
+
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            add_watermark_to_pdf(input_path, output_path, text=text, opacity=opacity, fontsize=fontsize, password=password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to watermark PDF: {e}")
+
+        with open(output_path, "rb") as f:
+            out_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": f"watermarked_{file.filename}",
+            "watermark_text": text,
+            "file_b64": base64.b64encode(out_bytes).decode("utf-8")
+        })
+
+@app.post("/api/encrypt")
+async def encrypt_endpoint(
+    file: UploadFile = File(...),
+    user_password: str = Form(...)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        output_path = os.path.join(tmpdir, "encrypted.pdf")
+
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            encrypt_pdf(input_path, output_path, user_password=user_password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Encryption failed: {e}")
+
+        with open(output_path, "rb") as f:
+            out_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": f"protected_{file.filename}",
+            "file_b64": base64.b64encode(out_bytes).decode("utf-8")
+        })
+
+@app.post("/api/decrypt")
+async def decrypt_endpoint(
+    file: UploadFile = File(...),
+    password: str = Form(...)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        output_path = os.path.join(tmpdir, "decrypted.pdf")
+
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            decrypt_pdf(input_path, output_path, password=password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Decryption failed: {e}")
+
+        with open(output_path, "rb") as f:
+            out_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": f"unlocked_{file.filename}",
+            "file_b64": base64.b64encode(out_bytes).decode("utf-8")
+        })
+
+@app.post("/api/pdf-to-images")
+async def pdf_to_images_endpoint(
+    file: UploadFile = File(...),
+    dpi: int = Form(150),
+    password: Optional[str] = Form(None)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            zip_bytes = pdf_to_images_zip(input_path, dpi=dpi, password=password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Image conversion failed: {e}")
+
+        return JSONResponse(content={
+            "filename": f"{os.path.splitext(file.filename)[0]}_images.zip",
+            "zip_b64": base64.b64encode(zip_bytes).decode("utf-8")
+        })
+
+@app.post("/api/images-to-pdf")
+async def images_to_pdf_endpoint(
+    files: list[UploadFile] = File(...)
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No image files provided.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        image_bytes_list = []
+        for file in files:
+            contents = await file.read()
+            image_bytes_list.append(contents)
+
+        output_path = os.path.join(tmpdir, "converted.pdf")
+        images_to_pdf(image_bytes_list, output_path)
+
+        with open(output_path, "rb") as f:
+            out_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": "converted_images.pdf",
+            "file_b64": base64.b64encode(out_bytes).decode("utf-8")
+        })
+
+@app.post("/api/redact-pii")
+async def redact_pii_endpoint(
+    file: UploadFile = File(...),
+    redact_email: bool = Form(True),
+    redact_phone: bool = Form(True),
+    redact_credit_card: bool = Form(True),
+    password: Optional[str] = Form(None)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        output_path = os.path.join(tmpdir, "redacted.pdf")
+
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            res = redact_pii_from_pdf(input_path, output_path, redact_email=redact_email, redact_phone=redact_phone, redact_credit_card=redact_credit_card, password=password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"PII Redaction failed: {e}")
+
+        with open(output_path, "rb") as f:
+            out_bytes = f.read()
+
+        return JSONResponse(content={
+            "filename": f"redacted_{file.filename}",
+            "total_redactions": res["total_redactions"],
+            "file_b64": base64.b64encode(out_bytes).decode("utf-8")
+        })
+
+@app.post("/api/export-markdown")
+async def export_markdown_endpoint(
+    file: UploadFile = File(...),
+    password: Optional[str] = Form(None)
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        contents = await file.read()
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            res = export_pdf_to_markdown(input_path, password=password)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Markdown export failed: {e}")
+
+        return JSONResponse(content={
+            "filename": f"{os.path.splitext(file.filename)[0]}.md",
+            "markdown_text": res["markdown_text"],
+            "page_count": res["page_count"]
         })
 
 public_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")

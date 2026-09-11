@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Compressor & AI RAG Assistant — Enterprise SaaS</title>
-  <meta name="description" content="Offline-first PDF Compression, FAISS Semantic RAG Assistant, Document Merger, Splitter & Executive Mindmaps.">
+  <title>PDF Compressor & AI Enterprise Suite</title>
+  <meta name="description" content="Offline-first PDF Compression, FAISS Semantic RAG Assistant, Watermarking, Security Encryption, PII Redaction, Converter & Executive Mindmaps.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -22,8 +22,8 @@
           <span class="icon">⚡</span>
         </div>
         <div>
-          <h1>PDF Compressor <span class="badge">Enterprise AI</span></h1>
-          <p class="subtitle">Rules Engine → FAISS Vector RAG → Safe Rebuild & Quality Metrics</p>
+          <h1>PDF Enterprise Studio <span class="badge">Hybrid AI</span></h1>
+          <p class="subtitle">Rules → FAISS Vector RAG → Encryption, Watermarking, PII Redaction & Converter</p>
         </div>
       </div>
       <div id="healthStatus" class="health-status">
@@ -34,19 +34,22 @@
     <!-- Navigation Bar -->
     <nav class="nav-tabs">
       <button id="tabCompress" class="tab-btn active" onclick="switchTab('compress')">
-        <span class="btn-icon">⚡</span> Single PDF Studio
+        <span class="btn-icon">⚡</span> Compressor Studio
       </button>
-      <button id="tabBatch" class="tab-btn" onclick="switchTab('batch')">
-        <span class="btn-icon">📦</span> Batch Compressor
+      <button id="tabSecurity" class="tab-btn" onclick="switchTab('security')">
+        <span class="btn-icon">🏷️</span> Security & Watermark
+      </button>
+      <button id="tabConvert" class="tab-btn" onclick="switchTab('convert')">
+        <span class="btn-icon">🖼️</span> Convert & Export
       </button>
       <button id="tabAsk" class="tab-btn" onclick="switchTab('ask')">
         <span class="btn-icon">🧠</span> Ask AI & Mindmaps
       </button>
       <button id="tabManip" class="tab-btn" onclick="switchTab('manip')">
-        <span class="btn-icon">🔀</span> Merge & Split Tools
+        <span class="btn-icon">🔀</span> Merge & Split
       </button>
       <button id="tabAbout" class="tab-btn" onclick="switchTab('about')">
-        <span class="btn-icon">ℹ️</span> System Architecture
+        <span class="btn-icon">ℹ️</span> Architecture
       </button>
     </nav>
 
@@ -65,17 +68,17 @@
             <div class="profile-card active" id="profMedium" onclick="selectProfile('medium')">
               <div class="profile-icon">🎯</div>
               <div class="profile-title">Balanced</div>
-              <div class="profile-desc">Recommended for ebooks & reports</div>
+              <div class="profile-desc">Ebooks & reports</div>
             </div>
             <div class="profile-card" id="profLow" onclick="selectProfile('low')">
               <div class="profile-icon">🎨</div>
               <div class="profile-title">High Quality</div>
-              <div class="profile-desc">Near lossless print quality</div>
+              <div class="profile-desc">Lossless print</div>
             </div>
             <div class="profile-card" id="profHigh" onclick="selectProfile('high')">
               <div class="profile-icon">⚡</div>
               <div class="profile-title">Smallest Size</div>
-              <div class="profile-desc">Aggressive screen compression</div>
+              <div class="profile-desc">Screen compression</div>
             </div>
           </div>
           <select id="levelSelect" class="form-control hidden">
@@ -221,49 +224,112 @@
       </div>
     </section>
 
-    <!-- TAB 2: Batch Compressor -->
-    <section id="secBatch" class="tab-content">
-      <div class="card glass">
-        <div class="card-header">
-          <h2>📁 Batch PDF Compression Studio</h2>
-          <span class="pill-tag">Export Single ZIP</span>
-        </div>
-        <p class="subtitle">Select multiple PDF files to process in parallel and export a single zip archive.</p>
-        
-        <div class="drop-zone" id="dropZoneBatch">
-          <span class="upload-icon">📦</span>
-          <p class="primary-text"><strong>Drag & Drop multiple PDFs</strong></p>
-          <p class="subtext">Select 2 or more files</p>
-          <input type="file" id="fileBatch" accept=".pdf" multiple class="file-input">
-          <div id="batchCount" class="file-name"></div>
+    <!-- TAB 2: Security & Watermarking -->
+    <section id="secSecurity" class="tab-content">
+      <div class="grid-2">
+        <div class="card glass">
+          <div class="card-header">
+            <h2>🏷️ PDF Watermarking Engine</h2>
+            <span class="pill-tag">Diagonal Overlay</span>
+          </div>
+          <div class="drop-zone" id="dropZoneWatermark">
+            <span class="upload-icon">🏷️</span>
+            <p class="primary-text"><strong>Select PDF to Watermark</strong></p>
+            <input type="file" id="fileWatermark" accept=".pdf" class="file-input">
+            <div id="fileNameWatermark" class="file-name"></div>
+          </div>
+          <div class="form-group">
+            <label for="inputWatermarkText">Watermark Text</label>
+            <input type="text" id="inputWatermarkText" class="form-control" value="CONFIDENTIAL">
+          </div>
+          <button id="btnWatermark" class="btn btn-primary" onclick="runWatermark()" disabled>
+            🏷️ Apply Diagonal Watermark
+          </button>
+          <div id="watermarkResults" class="hidden" style="margin-top: 1rem;">
+            <a id="btnDownloadWatermark" href="#" download="watermarked.pdf" class="btn btn-success">
+              ⬇️ Download Watermarked PDF
+            </a>
+          </div>
         </div>
 
-        <button id="btnBatch" class="btn btn-primary" onclick="runBatchCompression()" disabled>
-          📦 Compress All PDFs & Export ZIP
-        </button>
-
-        <div id="batchResults" class="hidden" style="margin-top: 1.5rem;">
-          <h3>Batch Results Overview</h3>
-          <table class="batch-table" id="batchTable">
-            <thead>
-              <tr>
-                <th>Filename</th>
-                <th>Original Size</th>
-                <th>Compressed Size</th>
-                <th>Reduction</th>
-              </tr>
-            </thead>
-            <tbody id="batchTableBody"></tbody>
-          </table>
-          
-          <a id="btnBatchDownload" href="#" download="compressed_pdfs.zip" class="btn btn-success" style="margin-top: 1rem;">
-            ⬇️ Download All Compressed PDFs (.zip)
-          </a>
+        <div class="card glass">
+          <div class="card-header">
+            <h2>🛡️ PII Auto-Redaction</h2>
+            <span class="pill-tag">Regex Masking</span>
+          </div>
+          <div class="drop-zone" id="dropZoneRedact">
+            <span class="upload-icon">🕵️</span>
+            <p class="primary-text"><strong>Select PDF for PII Redaction</strong></p>
+            <input type="file" id="fileRedact" accept=".pdf" class="file-input">
+            <div id="fileNameRedact" class="file-name"></div>
+          </div>
+          <div class="checkbox-list" style="margin-bottom: 1rem;">
+            <label class="custom-checkbox"><input type="checkbox" id="chkRedactEmail" checked><span>Redact Email Addresses</span></label>
+            <label class="custom-checkbox"><input type="checkbox" id="chkRedactPhone" checked><span>Redact Phone Numbers</span></label>
+            <label class="custom-checkbox"><input type="checkbox" id="chkRedactCC" checked><span>Redact Credit Card Numbers</span></label>
+          </div>
+          <button id="btnRedact" class="btn btn-primary" onclick="runRedactPII()" disabled>
+            🕵️ Redact Sensitive PII
+          </button>
+          <div id="redactResults" class="hidden" style="margin-top: 1rem;">
+            <a id="btnDownloadRedact" href="#" download="redacted.pdf" class="btn btn-success">
+              ⬇️ Download Redacted PDF
+            </a>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 3: Ask AI & Mindmaps -->
+    <!-- TAB 3: Convert & Export -->
+    <section id="secConvert" class="tab-content">
+      <div class="grid-2">
+        <div class="card glass">
+          <div class="card-header">
+            <h2>🖼️ PDF to PNG Images (ZIP)</h2>
+            <span class="pill-tag">HD Page Exporter</span>
+          </div>
+          <div class="drop-zone" id="dropZonePdfToImg">
+            <span class="upload-icon">🖼️</span>
+            <p class="primary-text"><strong>Select PDF to Convert</strong></p>
+            <input type="file" id="filePdfToImg" accept=".pdf" class="file-input">
+            <div id="fileNamePdfToImg" class="file-name"></div>
+          </div>
+          <button id="btnPdfToImg" class="btn btn-primary" onclick="runPdfToImages()" disabled>
+            🖼️ Convert PDF to PNG ZIP
+          </button>
+          <div id="pdfToImgResults" class="hidden" style="margin-top: 1rem;">
+            <a id="btnDownloadPdfToImg" href="#" download="pdf_images.zip" class="btn btn-success">
+              ⬇️ Download PNG Images (.zip)
+            </a>
+          </div>
+        </div>
+
+        <div class="card glass">
+          <div class="card-header">
+            <h2>📝 Export PDF to Markdown</h2>
+            <span class="pill-tag">Structured Text</span>
+          </div>
+          <div class="drop-zone" id="dropZoneExportMd">
+            <span class="upload-icon">📝</span>
+            <p class="primary-text"><strong>Select PDF to Export</strong></p>
+            <input type="file" id="fileExportMd" accept=".pdf" class="file-input">
+            <div id="fileNameExportMd" class="file-name"></div>
+          </div>
+          <button id="btnExportMd" class="btn btn-primary" onclick="runExportMarkdown()" disabled>
+            📝 Export Content to Markdown
+          </button>
+          <div id="exportMdResults" class="hidden" style="margin-top: 1rem;">
+            <div class="code-box-header">
+              <h4>Markdown Output</h4>
+              <button class="btn-copy" onclick="copyMarkdownText()">📋 Copy Markdown</button>
+            </div>
+            <pre id="markdownOutputText" style="max-height: 250px;"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Ask AI & Mindmaps -->
     <section id="secAsk" class="tab-content">
       <div class="card glass">
         <div class="card-header">
@@ -317,7 +383,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: Merge & Split PDF Tools -->
+    <!-- TAB 5: Merge & Split PDF Tools -->
     <section id="secManip" class="tab-content">
       <div class="grid-2">
         <div class="card glass">
@@ -370,7 +436,7 @@
       </div>
     </section>
 
-    <!-- TAB 5: Architecture -->
+    <!-- TAB 6: Architecture -->
     <section id="secAbout" class="tab-content">
       <div class="card glass">
         <div class="card-header">
@@ -397,18 +463,18 @@
             </div>
             <div class="pipeline-step">
               <span class="step-num">04</span>
+              <h4>Security, Watermarking & Redaction</h4>
+              <p>AES-256 encryption, diagonal vector watermarking, and regex-based automated PII masking.</p>
+            </div>
+            <div class="pipeline-step">
+              <span class="step-num">05</span>
               <h4>Ghostscript Safe Rebuild</h4>
               <p>Deflates streams (`garbage=4`) and downsamples images without losing transparency or vector crispness.</p>
             </div>
             <div class="pipeline-step">
-              <span class="step-num">05</span>
-              <h4>PSNR & SSIM Quality Engine</h4>
-              <p>Renders Page 1 bitmap comparisons to measure Peak Signal-to-Noise Ratio and Structural Similarity.</p>
-            </div>
-            <div class="pipeline-step">
               <span class="step-num">06</span>
-              <h4>LLM RAG & Mindmap Engine</h4>
-              <p>Page-level windowed chunking with FAISS indexing for Q&A and executive Mermaid mindmap generation.</p>
+              <h4>LLM RAG & Converter Suite</h4>
+              <p>PDF to Images PNG ZIP conversion, Markdown export, page-level windowed chunking for Q&A, and Mermaid mindmaps.</p>
             </div>
           </div>
         </div>
@@ -416,7 +482,7 @@
     </section>
 
     <footer class="app-footer">
-      <p>PDF Compressor & AI RAG Engine &copy; 2026 | Built with Python, PyMuPDF, FAISS & FastAPI</p>
+      <p>PDF Compressor & AI Enterprise Engine &copy; 2026 | Built with Python, PyMuPDF, FAISS & FastAPI</p>
     </footer>
   </div>
 

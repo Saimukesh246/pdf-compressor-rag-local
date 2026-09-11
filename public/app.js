@@ -1,4 +1,4 @@
-// PDF Compressor & AI Engine Production Client Logic
+// PDF Compressor & AI Enterprise Suite Production Client Logic
 
 document.addEventListener('DOMContentLoaded', () => {
   checkHealth();
@@ -39,7 +39,7 @@ async function checkHealth() {
 }
 
 function switchTab(tabName) {
-  const tabs = ['compress', 'batch', 'ask', 'manip', 'about'];
+  const tabs = ['compress', 'security', 'convert', 'ask', 'manip', 'about'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const sec = document.getElementById(`sec${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -115,15 +115,46 @@ function setupFileInputs() {
     });
   }
 
-  const batchInput = document.getElementById('fileBatch');
-  const btnBatch = document.getElementById('btnBatch');
-  const batchCount = document.getElementById('batchCount');
-
-  if (batchInput) {
-    batchInput.addEventListener('change', (e) => {
+  const wmInput = document.getElementById('fileWatermark');
+  const btnWatermark = document.getElementById('btnWatermark');
+  if (wmInput) {
+    wmInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
-        batchCount.innerText = `📦 ${e.target.files.length} PDF files selected`;
-        btnBatch.disabled = false;
+        document.getElementById('fileNameWatermark').innerText = `🏷️ ${e.target.files[0].name}`;
+        btnWatermark.disabled = false;
+      }
+    });
+  }
+
+  const redInput = document.getElementById('fileRedact');
+  const btnRedact = document.getElementById('btnRedact');
+  if (redInput) {
+    redInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        document.getElementById('fileNameRedact').innerText = `🕵️ ${e.target.files[0].name}`;
+        btnRedact.disabled = false;
+      }
+    });
+  }
+
+  const pdfToImgInput = document.getElementById('filePdfToImg');
+  const btnPdfToImg = document.getElementById('btnPdfToImg');
+  if (pdfToImgInput) {
+    pdfToImgInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        document.getElementById('fileNamePdfToImg').innerText = `🖼️ ${e.target.files[0].name}`;
+        btnPdfToImg.disabled = false;
+      }
+    });
+  }
+
+  const exportMdInput = document.getElementById('fileExportMd');
+  const btnExportMd = document.getElementById('btnExportMd');
+  if (exportMdInput) {
+    exportMdInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        document.getElementById('fileNameExportMd').innerText = `📝 ${e.target.files[0].name}`;
+        btnExportMd.disabled = false;
       }
     });
   }
@@ -255,61 +286,134 @@ async function runSingleCompression() {
   }
 }
 
-async function runBatchCompression() {
-  const fileInput = document.getElementById('fileBatch');
-  const btnBatch = document.getElementById('btnBatch');
+async function runWatermark() {
+  const fileInput = document.getElementById('fileWatermark');
+  const textInput = document.getElementById('inputWatermarkText');
+  const btnWatermark = document.getElementById('btnWatermark');
 
   if (!fileInput.files || fileInput.files.length === 0) return;
 
-  btnBatch.disabled = true;
-  btnBatch.innerHTML = '⏳ Processing Batch Compression...';
+  btnWatermark.disabled = true;
+  btnWatermark.innerHTML = '⏳ Applying Watermark...';
 
   const formData = new FormData();
-  for (let i = 0; i < fileInput.files.length; i++) {
-    formData.append('files', fileInput.files[i]);
-  }
-  formData.append('level', 'medium');
+  formData.append('file', fileInput.files[0]);
+  formData.append('text', textInput.value.trim() || 'CONFIDENTIAL');
 
   try {
-    const response = await fetch('/api/batch', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Batch compression failed');
-    }
-
+    const response = await fetch('/api/watermark', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Watermarking failed'); }
     const data = await response.json();
 
-    const tbody = document.getElementById('batchTableBody');
-    tbody.innerHTML = '';
-
-    data.results.forEach(res => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${res.filename}</strong></td>
-        <td>${res.stats.original_size_kb.toFixed(1)} KB</td>
-        <td>${res.stats.compressed_size_kb.toFixed(1)} KB</td>
-        <td style="color: var(--success); font-weight: 700;">-${res.stats.reduction_percent.toFixed(1)}%</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('batchResults').classList.remove('hidden');
-
-    const btnBatchDownload = document.getElementById('btnBatchDownload');
-    btnBatchDownload.href = `data:application/zip;base64,${data.zip_b64}`;
-
-    showToast('Batch PDF compression completed successfully!', 'success');
-
+    const btnDownload = document.getElementById('btnDownloadWatermark');
+    btnDownload.href = `data:application/pdf;base64,${data.file_b64}`;
+    document.getElementById('watermarkResults').classList.remove('hidden');
+    showToast('Watermark applied successfully!', 'success');
   } catch (err) {
-    showToast(`Batch Error: ${err.message}`, 'error');
+    showToast(`Watermark Error: ${err.message}`, 'error');
   } finally {
-    btnBatch.disabled = false;
-    btnBatch.innerHTML = '📦 Compress All PDFs & Export ZIP';
+    btnWatermark.disabled = false;
+    btnWatermark.innerHTML = '🏷️ Apply Diagonal Watermark';
   }
+}
+
+async function runRedactPII() {
+  const fileInput = document.getElementById('fileRedact');
+  const chkEmail = document.getElementById('chkRedactEmail').checked;
+  const chkPhone = document.getElementById('chkRedactPhone').checked;
+  const chkCC = document.getElementById('chkRedactCC').checked;
+  const btnRedact = document.getElementById('btnRedact');
+
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  btnRedact.disabled = true;
+  btnRedact.innerHTML = '⏳ Redacting PII...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('redact_email', chkEmail);
+  formData.append('redact_phone', chkPhone);
+  formData.append('redact_credit_card', chkCC);
+
+  try {
+    const response = await fetch('/api/redact-pii', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Redaction failed'); }
+    const data = await response.json();
+
+    const btnDownload = document.getElementById('btnDownloadRedact');
+    btnDownload.href = `data:application/pdf;base64,${data.file_b64}`;
+    document.getElementById('redactResults').classList.remove('hidden');
+    showToast(`Redacted ${data.total_redactions} PII text occurrences!`, 'success');
+  } catch (err) {
+    showToast(`Redaction Error: ${err.message}`, 'error');
+  } finally {
+    btnRedact.disabled = false;
+    btnRedact.innerHTML = '🕵️ Redact Sensitive PII';
+  }
+}
+
+async function runPdfToImages() {
+  const fileInput = document.getElementById('filePdfToImg');
+  const btnPdfToImg = document.getElementById('btnPdfToImg');
+
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  btnPdfToImg.disabled = true;
+  btnPdfToImg.innerHTML = '⏳ Exporting Images...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const response = await fetch('/api/pdf-to-images', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Conversion failed'); }
+    const data = await response.json();
+
+    const btnDownload = document.getElementById('btnDownloadPdfToImg');
+    btnDownload.href = `data:application/zip;base64,${data.zip_b64}`;
+    document.getElementById('pdfToImgResults').classList.remove('hidden');
+    showToast('PDF pages exported to PNG ZIP archive!', 'success');
+  } catch (err) {
+    showToast(`Conversion Error: ${err.message}`, 'error');
+  } finally {
+    btnPdfToImg.disabled = false;
+    btnPdfToImg.innerHTML = '🖼️ Convert PDF to PNG ZIP';
+  }
+}
+
+async function runExportMarkdown() {
+  const fileInput = document.getElementById('fileExportMd');
+  const btnExportMd = document.getElementById('btnExportMd');
+
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  btnExportMd.disabled = true;
+  btnExportMd.innerHTML = '⏳ Exporting Markdown...';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const response = await fetch('/api/export-markdown', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Export failed'); }
+    const data = await response.json();
+
+    document.getElementById('markdownOutputText').innerText = data.markdown_text;
+    document.getElementById('exportMdResults').classList.remove('hidden');
+    showToast(`Exported ${data.page_count} pages to Markdown!`, 'success');
+  } catch (err) {
+    showToast(`Export Error: ${err.message}`, 'error');
+  } finally {
+    btnExportMd.disabled = false;
+    btnExportMd.innerHTML = '📝 Export Content to Markdown';
+  }
+}
+
+function copyMarkdownText() {
+  const text = document.getElementById('markdownOutputText').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Markdown text copied to clipboard!', 'success');
+  });
 }
 
 async function runAskQuery() {
@@ -334,16 +438,8 @@ async function runAskQuery() {
   formData.append('query', queryInput.value.trim());
 
   try {
-    const response = await fetch('/api/ask', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'RAG query failed');
-    }
-
+    const response = await fetch('/api/ask', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'RAG query failed'); }
     const data = await response.json();
 
     if (document.getElementById('askSynthesizedAnswer')) {
@@ -372,7 +468,6 @@ async function runAskQuery() {
 
     document.getElementById('askResultsArea').classList.remove('hidden');
     showToast('RAG Vector Query completed!', 'success');
-
   } catch (err) {
     showToast(`RAG Error: ${err.message}`, 'error');
   } finally {
@@ -397,16 +492,8 @@ async function runMindmapGen() {
   formData.append('file', fileInput.files[0]);
 
   try {
-    const response = await fetch('/api/mindmap', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Mindmap generation failed');
-    }
-
+    const response = await fetch('/api/mindmap', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Mindmap generation failed'); }
     const data = await response.json();
 
     document.getElementById('askSynthesizedAnswer').innerText = data.summary_text;
@@ -415,7 +502,6 @@ async function runMindmapGen() {
     document.getElementById('askResultsArea').classList.remove('hidden');
 
     showToast('Mindmap generated successfully!', 'success');
-
   } catch (err) {
     showToast(`Mindmap Error: ${err.message}`, 'error');
   } finally {
@@ -449,16 +535,8 @@ async function runMergePDFs() {
   }
 
   try {
-    const response = await fetch('/api/merge', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Merging failed');
-    }
-
+    const response = await fetch('/api/merge', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Merging failed'); }
     const data = await response.json();
 
     const btnDownload = document.getElementById('btnDownloadMerge');
@@ -466,7 +544,6 @@ async function runMergePDFs() {
     document.getElementById('mergeResults').classList.remove('hidden');
 
     showToast(`Successfully merged ${fileInput.files.length} PDFs into ${data.filename}!`, 'success');
-
   } catch (err) {
     showToast(`Merge Error: ${err.message}`, 'error');
   } finally {
@@ -490,16 +567,8 @@ async function runSplitPDF() {
   formData.append('range_str', rangeInput.value.trim());
 
   try {
-    const response = await fetch('/api/split', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Splitting failed');
-    }
-
+    const response = await fetch('/api/split', { method: 'POST', body: formData });
+    if (!response.ok) { const err = await response.json(); throw new Error(err.detail || 'Splitting failed'); }
     const data = await response.json();
 
     const btnDownload = document.getElementById('btnDownloadSplit');
@@ -507,7 +576,6 @@ async function runSplitPDF() {
     document.getElementById('splitResults').classList.remove('hidden');
 
     showToast(`Successfully extracted pages (${data.extracted_pages})!`, 'success');
-
   } catch (err) {
     showToast(`Split Error: ${err.message}`, 'error');
   } finally {
