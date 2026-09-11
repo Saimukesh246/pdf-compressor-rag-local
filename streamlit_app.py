@@ -21,9 +21,283 @@ from compressor.pdf_optimizer import (
 # =========================================================
 st.set_page_config(
     page_title="PDF Compressor & RAG Assistant",
-    page_icon="📄",
+    page_icon="⚡",
     layout="wide"
 )
+
+# =========================================================
+# Creative Glassmorphism & High-Tech Design System (CSS)
+# =========================================================
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* Global Font & Background Styling */
+html, body, [class*="css"], .stApp {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+    background: #090d16 !important;
+    color: #f1f5f9;
+}
+
+/* Ambient Animated Radial Background Glows */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: -10%;
+    left: -10%;
+    width: 65vw;
+    height: 65vh;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.08) 40%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: floatGlow 14s ease-in-out infinite alternate;
+}
+
+.stApp::after {
+    content: '';
+    position: fixed;
+    bottom: -10%;
+    right: -10%;
+    width: 65vw;
+    height: 65vh;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.08) 40%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: floatGlow 18s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes floatGlow {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, 20px) scale(1.08); }
+    100% { transform: translate(-20px, 40px) scale(0.95); }
+}
+
+/* Main Container Padding */
+.main .block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 1250px !important;
+}
+
+/* Hero Header Banner */
+.hero-header {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.85));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 2.2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.hero-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #a855f7, #06b6d4, #10b981);
+}
+
+.hero-title {
+    font-size: 2.4rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.4rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.hero-subtitle {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.feature-pill {
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    backdrop-filter: blur(8px);
+}
+
+.feature-pill.green {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+}
+
+/* Styled Streamlit Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.6rem !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    padding: 0.5rem !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(16px) !important;
+    margin-bottom: 1.8rem !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 44px !important;
+    white-space: pre !important;
+    border-radius: 10px !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    border: none !important;
+    padding: 0 1.25rem !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: transparent !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #f8fafc !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+/* Streamlit Metric Cards Styling */
+div[data-testid="stMetric"] {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    padding: 1.1rem 1.3rem !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+div[data-testid="stMetric"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #6366f1, #06b6d4);
+}
+
+div[data-testid="stMetricLabel"] {
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+div[data-testid="stMetricValue"] {
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    color: #f8fafc !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Primary Button Styling */
+div.stButton > button {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    padding: 0.75rem 1.5rem !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+div.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5) !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+}
+
+div.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* Custom Download Button Styling */
+div.stDownloadButton > button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    padding: 0.75rem 1.5rem !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+div.stDownloadButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5) !important;
+}
+
+/* Upload Box Customization */
+div[data-testid="stFileUploader"] {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 2px dashed rgba(99, 102, 241, 0.35) !important;
+    border-radius: 16px !important;
+    padding: 1.2rem !important;
+    backdrop-filter: blur(12px) !important;
+    transition: all 0.25s ease !important;
+}
+
+div[data-testid="stFileUploader"]:hover {
+    border-color: #6366f1 !important;
+    background: rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Select Box & Text Input Styling */
+div[data-baseweb="select"] > div, input[type="text"], input[type="password"] {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    color: #f8fafc !important;
+}
+
+/* Custom Expander Styling */
+div[data-testid="stExpander"] {
+    background: rgba(15, 23, 42, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* Hide default Streamlit footer and hamburger menu */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # System Check: Ghostscript
@@ -51,10 +325,24 @@ def load_rag():
 knowledge, rag_index = load_rag()
 
 # =========================================================
-# Streamlit Header
+# Streamlit Hero Header Banner
 # =========================================================
-st.title("📄 PDF Compressor & RAG Assistant")
-st.caption("⚡ Rule Engine → 🧠 Vector RAG Fallback → 💬 LLM Synthesized Q&A → 🛡️ Ghostscript Safe Rebuild")
+gs_badge = f'<span class="feature-pill green">⚡ Ghostscript Active ({GS_PATH})</span>' if GS_PATH else '<span class="feature-pill red">❌ Ghostscript Missing</span>'
+
+st.markdown(f"""
+<div class="hero-header">
+    <div class="hero-title">
+        <span>📄 PDF Compressor & RAG Assistant</span>
+    </div>
+    <div class="hero-subtitle">
+        <span class="feature-pill">🎯 Hybrid Rule Engine</span>
+        <span class="feature-pill">🧠 FAISS Vector RAG</span>
+        <span class="feature-pill">💬 LLM Synthesis</span>
+        <span class="feature-pill">📐 PSNR/SSIM Quality Engine</span>
+        {gs_badge}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 if not GS_PATH:
     st.error(
@@ -62,8 +350,6 @@ if not GS_PATH:
         "Please install Ghostscript from: https://www.ghostscript.com/releases/gsdnld.html"
     )
     st.stop()
-
-st.success(f"✅ Ghostscript Engine Active: `{GS_PATH}`")
 
 # =========================================================
 # Navigation Tabs
